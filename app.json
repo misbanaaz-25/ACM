@@ -3,7 +3,7 @@
     "name": "ACMCallManager",
     "slug": "ACMCallManager",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "acmcallmanager",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.misbanaaz.ACMCallManager"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "de0efd52-4d33-4db2-82ef-8910b9b5e4a7"
+      }
     }
   }
 }
