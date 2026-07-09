@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
@@ -33,12 +34,23 @@ export default function WhitelistModal({ visible, onClose }: Props) {
     onClose();
   };
 
-  const handleAdd = () => {
-    if (phoneNumber.trim() === '') return;
-    console.log('Added to whitelist:', countryCode, phoneNumber);
-    setPhoneNumber('');
-    handleClose();
-  };
+ const handleAdd = () => {
+
+   if (phoneNumber.trim() === '') {
+     Alert.alert('Error', 'Please enter phone number');
+     return;
+   }
+
+   if (phoneNumber.length !== 10) {
+     Alert.alert('Error', 'Phone number must be 10 digits');
+     return;
+   }
+
+   console.log('Added to whitelist:', countryCode, phoneNumber);
+
+   setPhoneNumber('');
+   handleClose();
+ };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
@@ -96,6 +108,7 @@ export default function WhitelistModal({ visible, onClose }: Props) {
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 keyboardType="number-pad"
+                maxLength={10}
               />
             </View>
 

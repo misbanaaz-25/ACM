@@ -88,10 +88,12 @@ export default function AdvanceBlacklistContent() {
           <View style={[styles.codeInputRow, { borderColor: colors.border }]}>
             <TextInput
               style={[styles.codeInput, { color: colors.text }]}
-              placeholder="Add country code..."
+              placeholder="Enter country code (91, 44, 71)"
               placeholderTextColor={colors.border}
               value={countryCodeInput}
               onChangeText={setCountryCodeInput}
+              keyboardType="number-pad"
+              maxLength={2}
             />
             <TouchableOpacity onPress={addCountryCode}>
               <Feather name="arrow-right" size={20} color={colors.text} />
@@ -140,7 +142,9 @@ export default function AdvanceBlacklistContent() {
               placeholder="Enter number series (1321, 8249)"
               placeholderTextColor={colors.border}
               value={seriesInput}
+              keyboardType="number-pad"
               onChangeText={setSeriesInput}
+              maxLength={4}
             />
             <TouchableOpacity onPress={addNumberSeries}>
               <Feather name="arrow-right" size={20} color={colors.text} />
@@ -205,6 +209,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   codeInputRow: {
+      height:60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
   },
   codeInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 12,
   },
   chipRow: {
     flexDirection: 'row',

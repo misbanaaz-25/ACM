@@ -8,6 +8,7 @@ import {
   ScrollView,
   Image,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -20,6 +21,8 @@ import WhitelistModal from '@/components/ui/modals/whitelist';
 import BlacklistModal from '@/components/ui/modals/blacklist';
 import ManageProfileGrid from '@/components/ui/modals/ManageProfileGrid';
 import BottomBar from '../components/ui/modals/BottomBar';
+import SubscribeCard from '@/components/ui/modals/SubscribeCard';
+
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -34,6 +37,23 @@ export default function HomeScreen() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showWhitelistModal, setShowWhitelistModal] = useState(false);
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
+
+  // subscribe hone se pehle grid, whitelist, blacklist teeno locked rahenge
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  // agar subscribe nahi kiya to alert dikha do, warna asli action chalao
+  const requireSubscription = (action) => {
+    if (!isSubscribed) {
+      Alert.alert('Subscribe first', 'Ye feature use karne ke liye pehle subscribe karo.');
+      return;
+    }
+    action();
+  };
+
+  // ManageProfileGrid ke andar se bhi alert dikhane ke liye (uske apne internal clicks ke liye)
+  const showSubscribeAlert = () => {
+    Alert.alert('Subscribe first', 'Ye feature use karne ke liye pehle subscribe karo.');
+  };
 
   return (
     <>
@@ -68,6 +88,14 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Subscribe card - jab tak subscribe na ho tabhi dikhega */}
+          {!isSubscribed && (
+            <SubscribeCard
+              cardWidth={cardWidth}
+              onSubscribe={() => setIsSubscribed(true)}
+            />
+          )}
+
           {/*------ Dashboard card------ */}
           <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>Dashboard</Text>
@@ -77,31 +105,46 @@ export default function HomeScreen() {
               <Text style={[styles.timerLabel, { color: colors.text }]}>My Profile</Text>
               <Text style={[styles.timerValue, { color: colors.text }]}>No profile</Text>
             </View>
+          <View style={styles.statRow}>
+                        <TouchableOpacity
+                          style={[styles.statBox, { borderColor: colors.border }]}
+                          onPress={() => router.push('/schedule_profile')}
+                        >
+                          <Text style={[styles.statTitle, { color: colors.text }]}>No Profile</Text>
+                          <View style={styles.statLinkRow}>
+                            <Text style={[styles.statLink, { color: colors.primary }]}>Schedule Profile</Text>
+                            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                          </View>
+                        </TouchableOpacity>
 
-            <View style={styles.statRow}>
-              <View style={[styles.statBox, { borderColor: colors.border }]}>
-                <Text style={[styles.statTitle, { color: colors.text }]}>No Profile</Text>
-                <View style={styles.statLinkRow}>
-                  <Text style={[styles.statLink, { color: colors.primary }]}>Schedule Profile</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-                </View>
-              </View>
-              <View style={[styles.statBox, { borderColor: colors.border }]}>
-                <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
-                <View style={styles.statLinkRow}>
-                  <Text style={[styles.statLink, { color: colors.primary }]}>Blacklist</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-                </View>
-              </View>
-              <View style={[styles.statBox, { borderColor: colors.border }]}>
-                <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
-                <View style={styles.statLinkRow}>
-                  <Text style={[styles.statLink, { color: colors.primary }]}>Whitelist</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-                </View>
-              </View>
-            </View>
-          </View>
+                        <TouchableOpacity
+                          style={[styles.statBox, { borderColor: colors.border }]}
+                          onPress={() => router.push('/Blocked_contact')}
+                        >
+                          <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
+                          <View style={styles.statLinkRow}>
+                            <Text style={[styles.statLink, { color: colors.primary }]}>Blacklist</Text>
+                            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                          </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.statBox, { borderColor: colors.border }]}
+                          onPress={() => router.push('/Whitelist_contact')}
+                        >
+                          <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
+                          <View style={styles.statLinkRow}>
+                            <Text style={[styles.statLink, { color: colors.primary }]}>
+                              Whitelist
+                            </Text>
+                            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+
+                    </View>
+
+
 
           {/* Manage / Schedule Profile card */}
           <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>
@@ -133,10 +176,11 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Manage Profile ka poora grid ab alag file mein hai */}
+            {/* Manage Profile ka poora grid alag file mein hai - ab subscribe check grid ke andar hi hota hai */}
             <ManageProfileGrid
               onCustomProfilePress={() => setShowRecordingModal(true)}
-              onGymPress={() => setShowScheduleModal(true)}
+              isSubscribed={isSubscribed}
+              onRequireSubscription={showSubscribeAlert}
             />
           </View>
 
@@ -149,7 +193,7 @@ export default function HomeScreen() {
 
             <TouchableOpacity
               style={[styles.addNumberBtn, { borderColor: colors.primary }]}
-              onPress={() => setShowWhitelistModal(true)}
+              onPress={() => requireSubscription(() => setShowWhitelistModal(true))}
             >
               <Text style={[styles.addNumberText, { color: colors.primary }]}>Add Number</Text>
               <Feather name="plus" size={18} color={colors.primary} />
@@ -194,7 +238,7 @@ export default function HomeScreen() {
 
                 <TouchableOpacity
                   style={[styles.addNumberBtn, { borderColor: colors.primary }]}
-                  onPress={() => setShowBlacklistModal(true)}
+                  onPress={() => requireSubscription(() => setShowBlacklistModal(true))}
                 >
                   <Text style={[styles.addNumberText, { color: colors.primary }]}>Add Number</Text>
                   <Feather name="plus" size={18} color={colors.primary} />
@@ -206,6 +250,7 @@ export default function HomeScreen() {
           </View>
 
         </ScrollView>
+
 
         {/* Bottom Bar - fixed at the bottom, outside ScrollView */}
         <BottomBar active="home" />
@@ -285,7 +330,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: Colors.light.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -346,6 +391,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tabText: {
+      width:150,
     fontSize: 15,
     paddingBottom: 6,
   },

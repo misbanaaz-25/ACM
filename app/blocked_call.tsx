@@ -41,7 +41,7 @@ export default function BlockedCallsScreen() {
         >
           {/* top wala header, title + edit button */}
           <View style={[styles.headerRow, { width: cardWidth }]}>
-            <Text style={[styles.title, { color: colors.text }]}>Blocked calls</Text>
+            <Text style={[styles.title, { color: colors.text }]}>calls</Text>
             <TouchableOpacity>
               <Text style={[styles.editText, { color: colors.primary }]}>Edit</Text>
             </TouchableOpacity>

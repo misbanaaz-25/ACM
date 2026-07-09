@@ -183,6 +183,9 @@ export default function RecordingModal({ visible, onClose }: Props) {
            ]}
            onPress={() => {
              console.log('Profile created:', profileName, recordedUri);
+               setProfileName('');   //Name clear
+               resetRecording();     // Recording reset
+
              onClose();
            }}
          >

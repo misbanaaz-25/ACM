@@ -2,15 +2,24 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
+import ScheduleModal from './timer';
 
 type Props = {
   onCustomProfilePress: () => void;
-  onGymPress: () => void;
+  isSubscribed: boolean;
+  onRequireSubscription: () => void;
 };
 
-export default function ManageProfileGrid({ onCustomProfilePress, onGymPress }: Props) {
+export default function ManageProfileGrid({
+  onCustomProfilePress,
+  isSubscribed,
+  onRequireSubscription,
+}: Props) {
   const colors = Colors.light;
   const [showAll, setShowAll] = useState(false);
+
+  // sab icons k lie common ScheduleModal (Custom Profile ko chhod ke)
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const manageProfileItems = [
     {
@@ -82,6 +91,22 @@ export default function ManageProfileGrid({ onCustomProfilePress, onGymPress }: 
 
   const visibleItems = showAll ? manageProfileItems : manageProfileItems.slice(0, 8);
 
+  const handleItemPress = (label: string) => {
+    // subscribe nahi kiya to koi bhi icon kaam nahi karega, bas alert dikhega
+    if (!isSubscribed) {
+      onRequireSubscription();
+      return;
+    }
+
+    // sirf Custom Profile ka apna alag (recording) modal khulega
+    if (label === 'Custom Profile') {
+      onCustomProfilePress();
+      return;
+    }
+    // baaki SAB icons (including GYM) same ScheduleModal kholenge
+    setShowScheduleModal(true);
+  };
+
   return (
     <>
       <View style={styles.grid}>
@@ -89,15 +114,7 @@ export default function ManageProfileGrid({ onCustomProfilePress, onGymPress }: 
           <TouchableOpacity
             key={index}
             style={styles.gridItem}
-            onPress={() => {
-              // in dono items ka apna modal hai, baaki sab abhi bina action k hain
-              if (item.label === 'Custom Profile') {
-                onCustomProfilePress();
-              }
-              if (item.label === 'Gym') {
-                onGymPress();
-              }
-            }}
+            onPress={() => handleItemPress(item.label)}
           >
             <View
               style={[
@@ -118,6 +135,12 @@ export default function ManageProfileGrid({ onCustomProfilePress, onGymPress }: 
           {showAll ? 'See Less' : 'See more'}
         </Text>
       </TouchableOpacity>
+
+      {/* Schedule Modal (timer.tsx) - Custom Profile chhod ke sab icons k lie */}
+      <ScheduleModal
+        visible={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+      />
     </>
   );
 }

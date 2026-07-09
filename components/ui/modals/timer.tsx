@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,10 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
@@ -16,101 +19,208 @@ type Props = {
   onClose: () => void;
 };
 
+const ITEM_HEIGHT = 36; // har wheel item ki height, sab jagah same use hogi
+const VISIBLE_ITEMS = 3; // ek time pe 3 items dikhenge (upar, selected, neeche)
+
+// ----- Reusable Wheel Picker component -----
+type WheelPickerProps = {
+  data: (string | number)[];
+  selectedIndex: number;
+  onChange: (index: number) => void;
+};
+
+function WheelPicker({ data, selectedIndex, onChange }: WheelPickerProps) {
+  const colors = Colors.light;
+  const scrollRef = useRef<ScrollView>(null);
+  const paddingCount = Math.floor(VISIBLE_ITEMS / 2);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_HEIGHT, animated: false });
+  }, []);
+
+  const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = e.nativeEvent.contentOffset.y;
+    const rawIndex = Math.round(offsetY / ITEM_HEIGHT);
+    const clampedIndex = Math.max(0, Math.min(rawIndex, data.length - 1));
+
+    onChange(clampedIndex);
+    scrollRef.current?.scrollTo({ y: clampedIndex * ITEM_HEIGHT, animated: true });
+  };
+
+  return (
+    <View style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS, overflow: 'hidden' }}>
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_HEIGHT}
+        decelerationRate="fast"
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * paddingCount }}
+      >
+        {data.map((item, index) => (
+          <View key={index} style={{ height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
+            <Text
+              style={{
+                fontSize: index === selectedIndex ? 20 : 14,
+                fontWeight: index === selectedIndex ? '700' : '400',
+                color: index === selectedIndex ? colors.primary : colors.border,
+              }}
+            >
+              {item}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function ScheduleModal({ visible, onClose }: Props) {
   const { width } = useWindowDimensions();
   const colors = Colors.light;
 
-  const [activeTab, setActiveTab] = useState('time'); // 'date' ya 'time'
+  // wheel data arrays
+  const hoursData = Array.from({ length: 12 }, (_, i) => i + 1); // 1 se 12
+  const minutesData = Array.from({ length: 60 }, (_, i) => i); // 0 se 59
+  const ampmData = ['AM', 'PM'];
 
   const [hour, setHour] = useState(7);
   const [minute, setMinute] = useState(15);
-  const [ampm, setAmpm] = useState('AM');
+  const [ampm, setAmpm] = useState<'AM' | 'PM'>('AM');
 
   const [durationHr, setDurationHr] = useState(7);
   const [durationMin, setDurationMin] = useState(15);
 
-  const [repeatType, setRepeatType] = useState(''); // 'weekly' ya 'daily'
-  const [selectedDays, setSelectedDays] = useState([]);
+  const [repeatType, setRepeatType] = useState<'' | 'weekly' | 'daily'>('');
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
   const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-  const toggleDay = (index) => {
-    if (selectedDays.includes(index)) {
-      setSelectedDays(selectedDays.filter((d) => d !== index));
-    } else {
-      setSelectedDays([...selectedDays, index]);
+  // duration - max 11 hrs 59 mins tak hi jayega, negative nahi hoga
+  const incrementDurationHr = () => setDurationHr((prev) => Math.min(prev + 1, 11));
+  const decrementDurationHr = () => setDurationHr((prev) => Math.max(prev - 1, 0));
+
+  const incrementDurationMin = () => setDurationMin((prev) => Math.min(prev + 1, 59));
+  const decrementDurationMin = () => setDurationMin((prev) => Math.max(prev - 1, 0));
+
+ const toggleDay = (index: number) => {
+
+   if (selectedDays.includes(index)) {
+     setSelectedDays(selectedDays.filter((d) => d !== index));
+   } else {
+     setSelectedDays([...selectedDays, index]);
+   }
+
+ };
+
+  // Daily select krne pe saare 7 din auto-select ho jayenge
+  // Weekly select krne pe days reset ho jayenge, taki manually choose kr sako
+ const handleSelectDaily = () => {
+
+   if (repeatType === 'daily') {
+     setRepeatType('');
+     setSelectedDays([]);
+     return;
+   }
+
+   setRepeatType('daily');
+   setSelectedDays([0,1,2,3,4,5,6]);
+ };
+
+  const handleSelectWeekly = () => {
+
+    if (repeatType === 'weekly') {
+      setRepeatType('');
+      return;
     }
+
+    setRepeatType('weekly');
   };
+
+
+ const handlePlay = () => {
+
+   if (repeatType === '') {
+     Alert.alert('Error', 'Please select Daily or Weekly.');
+     return;
+   }
+
+   if (repeatType === 'weekly' && selectedDays.length === 0) {
+     Alert.alert('Error', 'Please select at least one day.');
+     return;
+   }
+
+   console.log('Preview schedule:', {
+     hour,
+     minute,
+     ampm,
+     durationHr,
+     durationMin,
+     repeatType,
+     selectedDays,
+   });
+
+ };
+
+ const handleSubmit = () => {
+
+   if (repeatType === '') {
+     Alert.alert('Error', 'Please select Daily or Weekly.');
+     return;
+   }
+
+   if (repeatType === 'weekly' && selectedDays.length === 0) {
+     Alert.alert('Error', 'Please select at least one day.');
+     return;
+   }
+
+   console.log('Schedule submitted:', {
+     hour,
+     minute,
+     ampm,
+     durationHr,
+     durationMin,
+     repeatType,
+     selectedDays,
+   });
+
+   onClose();
+ };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={[styles.container, { width: width * 0.85, backgroundColor: colors.background }]}>
 
-          {/* Header with tabs and close button */}
+          {/* Header - ab sirf "Set Time" hai, "Set Date" hata diya kyunki uska use nahi tha */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => setActiveTab('date')}>
-              <Text style={[styles.tabText, { color: colors.text }, activeTab === 'date' && { color: colors.primary, fontWeight: '700' }]}>
-                Set Date
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => setActiveTab('time')}>
-              <Text style={[styles.tabText, { color: colors.text }, activeTab === 'time' && { color: colors.primary, fontWeight: '700' }]}>
-                Set Time
-              </Text>
-            </TouchableOpacity>
+            <Text style={[styles.tabText, { color: colors.primary, fontWeight: '700' }]}>
+              Set Time
+            </Text>
 
             <TouchableOpacity onPress={onClose}>
               <Feather name="x" size={20} color={colors.text} />
             </TouchableOpacity>
           </View>
 
-          {/* Set Time picker */}
-          {activeTab === 'time' && (
-            <View style={styles.pickerRow}>
-              <View style={styles.pickerColumn}>
-                <TouchableOpacity onPress={() => setHour(hour - 1)}>
-                  <Text style={[styles.pickerSmall, { color: colors.border }]}>{hour - 1}</Text>
-                </TouchableOpacity>
-                <Text style={[styles.pickerSelected, { color: colors.primary }]}>{hour}</Text>
-                <TouchableOpacity onPress={() => setHour(hour + 1)}>
-                  <Text style={[styles.pickerSmall, { color: colors.border }]}>{hour + 1}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.pickerColumn}>
-                <TouchableOpacity onPress={() => setMinute(minute - 1)}>
-                  <Text style={[styles.pickerSmall, { color: colors.border }]}>{minute - 1}</Text>
-                </TouchableOpacity>
-                <Text style={[styles.pickerSelected, { color: colors.primary }]}>{minute}</Text>
-                <TouchableOpacity onPress={() => setMinute(minute + 1)}>
-                  <Text style={[styles.pickerSmall, { color: colors.border }]}>{minute + 1}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.pickerColumn}>
-                <TouchableOpacity onPress={() => setAmpm(ampm === 'AM' ? 'PM' : 'AM')}>
-                  <Text style={[styles.pickerSmall, { color: colors.border }]}>
-                    {ampm === 'AM' ? 'PM' : 'AM'}
-                  </Text>
-                </TouchableOpacity>
-                <Text style={[styles.pickerSelected, { color: colors.primary }]}>{ampm}</Text>
-                <TouchableOpacity onPress={() => setAmpm(ampm === 'AM' ? 'PM' : 'AM')}>
-                  <Text style={[styles.pickerSmall, { color: colors.border }]}>
-                    {ampm === 'AM' ? 'PM' : 'AM'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Set Date picker - abhi simple placeholder, baad mein detail karenge */}
-          {activeTab === 'date' && (
-            <View style={styles.pickerRow}>
-              <Text style={{ color: colors.text }}>Date picker yaha aayega</Text>
-            </View>
-          )}
+          {/* Set Time picker - real scroll wheel */}
+          <View style={styles.pickerRow}>
+            <WheelPicker
+              data={hoursData}
+              selectedIndex={hour - 1}
+              onChange={(index) => setHour(hoursData[index])}
+            />
+            <WheelPicker
+              data={minutesData}
+              selectedIndex={minute}
+              onChange={(index) => setMinute(minutesData[index])}
+            />
+            <WheelPicker
+              data={ampmData}
+              selectedIndex={ampm === 'AM' ? 0 : 1}
+              onChange={(index) => setAmpm(index === 0 ? 'AM' : 'PM')}
+            />
+          </View>
 
           {/* Set duration */}
           <Text style={[styles.sectionTitle, { color: colors.primary }]}>Set duration</Text>
@@ -122,11 +232,11 @@ export default function ScheduleModal({ visible, onClose }: Props) {
             <View style={styles.durationColumn}>
               <Text style={[styles.durationLabel, { color: colors.text }]}>Hr</Text>
               <View style={styles.durationControls}>
-                <TouchableOpacity onPress={() => setDurationHr(durationHr - 1)}>
+                <TouchableOpacity onPress={decrementDurationHr}>
                   <Feather name="minus" size={16} color={colors.primary} />
                 </TouchableOpacity>
                 <Text style={[styles.durationValue, { color: colors.primary }]}>{durationHr}</Text>
-                <TouchableOpacity onPress={() => setDurationHr(durationHr + 1)}>
+                <TouchableOpacity onPress={incrementDurationHr}>
                   <Feather name="plus" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </View>
@@ -135,11 +245,11 @@ export default function ScheduleModal({ visible, onClose }: Props) {
             <View style={styles.durationColumn}>
               <Text style={[styles.durationLabel, { color: colors.text }]}>Min</Text>
               <View style={styles.durationControls}>
-                <TouchableOpacity onPress={() => setDurationMin(durationMin - 1)}>
+                <TouchableOpacity onPress={decrementDurationMin}>
                   <Feather name="minus" size={16} color={colors.primary} />
                 </TouchableOpacity>
                 <Text style={[styles.durationValue, { color: colors.primary }]}>{durationMin}</Text>
-                <TouchableOpacity onPress={() => setDurationMin(durationMin + 1)}>
+                <TouchableOpacity onPress={incrementDurationMin}>
                   <Feather name="plus" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </View>
@@ -152,29 +262,33 @@ export default function ScheduleModal({ visible, onClose }: Props) {
           <View style={styles.repeatRow}>
             <TouchableOpacity
               style={styles.checkboxRow}
-              onPress={() => setRepeatType('weekly')}
+              onPress={handleSelectWeekly}
             >
               <View
                 style={[
                   styles.checkbox,
-                  { borderColor: colors.border },
-                  repeatType === 'weekly' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                  { borderColor: repeatType === 'weekly' ? colors.primary : colors.border },
+                  repeatType === 'weekly' && { backgroundColor: colors.primary },
                 ]}
-              />
+              >
+                {repeatType === 'weekly' && <Feather name="check" size={11} color={colors.white} />}
+              </View>
               <Text style={{ color: colors.text }}>Weekly</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.checkboxRow}
-              onPress={() => setRepeatType('daily')}
+              onPress={handleSelectDaily}
             >
               <View
                 style={[
                   styles.checkbox,
-                  { borderColor: colors.border },
-                  repeatType === 'daily' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                  { borderColor: repeatType === 'daily' ? colors.primary : colors.border },
+                  repeatType === 'daily' && { backgroundColor: colors.primary },
                 ]}
-              />
+              >
+                {repeatType === 'daily' && <Feather name="check" size={11} color={colors.white} />}
+              </View>
               <Text style={{ color: colors.text }}>Daily</Text>
             </TouchableOpacity>
           </View>
@@ -204,11 +318,11 @@ export default function ScheduleModal({ visible, onClose }: Props) {
 
           {/* Play and Submit buttons */}
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.playBtn, { borderColor: colors.primary }]}>
+            <TouchableOpacity style={[styles.playBtn, { borderColor: colors.primary }]} onPress={handlePlay}>
               <Text style={[styles.playText, { color: colors.primary }]}>Play</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]}>
+            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={handleSubmit}>
               <Text style={[styles.submitText, { color: colors.white }]}>Submit</Text>
             </TouchableOpacity>
           </View>
@@ -221,10 +335,10 @@ export default function ScheduleModal({ visible, onClose }: Props) {
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
   },
   container: {
     borderRadius: 16,
@@ -244,18 +358,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     marginBottom: 20,
-  },
-  pickerColumn: {
-    alignItems: 'center',
-  },
-  pickerSmall: {
-    fontSize: 14,
-    marginVertical: 4,
-  },
-  pickerSelected: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginVertical: 4,
   },
   sectionTitle: {
     fontSize: 14,
@@ -303,8 +405,10 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 16,
     height: 16,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   daysRow: {
     flexDirection: 'row',

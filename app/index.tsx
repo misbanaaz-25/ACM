@@ -9,6 +9,7 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -17,6 +18,23 @@ import { useWindowDimensions } from 'react-native';
 export default function LoginScreen() {
   const [mobile, setMobile] = useState('');
   const router = useRouter();
+
+  //logic of validation
+  const validateMobile = () => {
+
+    if (mobile.trim() === '') {
+      Alert.alert('Error', 'Please enter your mobile number');
+      return;
+    }
+
+    if (!/^\d{10}$/.test(mobile.trim())) {
+      Alert.alert('Error', 'Please enter a valid 10 digit mobile number');
+      return;
+    }
+
+    router.push('/validate');
+  };
+
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
@@ -71,7 +89,7 @@ export default function LoginScreen() {
 
            <TouchableOpacity
              style={styles.button}
-             onPress={() => router.push('/validate')}
+             onPress={validateMobile}
            >
              <Text style={styles.buttonText}>Get OTP</Text>
            </TouchableOpacity>

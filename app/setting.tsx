@@ -52,7 +52,7 @@ export default function SettingsScreen() {
                 <Text style={styles.userPhone}>+91 6584357775</Text>
               </View>
 
-              <TouchableOpacity style={styles.createProfileBtn} onPress={() => router.push('/resend_OTP')}>
+              <TouchableOpacity style={styles.createProfileBtn} onPress={() => router.push('/Create_profile')}>
                 <Text style={styles.createProfileText}>Create Profile</Text>
               </TouchableOpacity>
             </View>
@@ -158,6 +158,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuLabel: {
+      width:100,
     fontSize: 15,
     color: '#000',
   },

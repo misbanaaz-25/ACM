@@ -422,6 +422,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tabText: {
+    width:150,
     fontSize: 15,
     color: '#000',
     paddingBottom: 6,

@@ -27,7 +27,7 @@ export default function BottomBar({ active = 'home' }: Props) {
       <TouchableOpacity style={styles.bottomTab} onPress={() => router.push('/blocked_call')}>
         <Ionicons name={active === 'calls' ? 'call' : 'call-outline'} size={22} color={colors.white} />
         <Text style={[styles.bottomTabText, { color: colors.white }, active === 'calls' && styles.activeText]}>
-          Blocked Call
+          Call logs
         </Text>
         {active === 'calls' && <View style={[styles.activeIndicator, { backgroundColor: colors.white }]} />}
       </TouchableOpacity>

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState , useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -17,7 +18,80 @@ import { useRouter } from 'expo-router';
 export default function LoginScreen() {
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
+
+  const [timer, setTimer] = useState(0);
+  const [isResendDisabled, setIsResendDisabled] = useState(false);
+
   const router = useRouter();
+
+  //logic ofvalidation
+  const validateOTP = () => {
+
+    if (mobile.trim() === '') {
+      Alert.alert('Error', 'Please enter mobile number');
+      return;
+    }
+
+    if (mobile.length !== 10) {
+      Alert.alert('Error', 'Mobile number must be 10 digits');
+      return;
+    }
+
+    if (otp.trim() === '') {
+      Alert.alert('Error', 'Please enter OTP');
+      return;
+    }
+
+    if (otp.length !== 6) {
+      Alert.alert('Error', 'OTP must be 6 digits');
+      return;
+    }
+
+    router.push('/main');
+
+  };
+
+const handleResendOTP = () => {
+
+  if (mobile.trim() === '') {
+    Alert.alert('Error', 'Please enter mobile number');
+    return;
+  }
+
+  if (mobile.length !== 10) {
+    Alert.alert('Error', 'Mobile number must be 10 digits');
+    return;
+  }
+
+  setIsResendDisabled(true);
+  setTimer(30);
+
+  Alert.alert(
+    'OTP Sent Successfully',
+    'A new OTP has been sent to your registered mobile number.'
+  );
+
+  // Future API Call
+};
+
+ useEffect(() => {
+   let interval: ReturnType<typeof setInterval>;
+
+   if (timer > 0) {
+     interval = setInterval(() => {
+       setTimer((prev) => prev - 1);
+     }, 1000);
+   } else {
+     setIsResendDisabled(false);
+   }
+
+   return () => {
+     if (interval) clearInterval(interval);
+   };
+ }, [timer]);
+
+
+
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
@@ -80,7 +154,7 @@ export default function LoginScreen() {
                   placeholder=" Enter OTP"
                   placeholderTextColor="#aaa"
                   keyboardType="phone-pad"
-                  maxLength={10}
+                  maxLength={6}
                   value={otp}
                   onChangeText={setOtp}
                 />
@@ -88,7 +162,7 @@ export default function LoginScreen() {
 
              <TouchableOpacity
                style={styles.button}
-               onPress={() => router.push('/without_profile')}
+               onPress={validateOTP}
              >
 
                <Text style={styles.buttonText}>Validate</Text>
@@ -99,10 +173,16 @@ export default function LoginScreen() {
                 style={[
                   styles.button1,
                   isLandscape && { marginBottom: 8 },
+                  isResendDisabled && { opacity: 0.6 },
                 ]}
-                onPress={() => router.push('/resend_OTP')}
+                disabled={isResendDisabled}
+                onPress={handleResendOTP}
               >
-                <Text style={styles.buttonText1}>Resend OTP</Text>
+                <Text style={styles.buttonText1}>
+                  {isResendDisabled
+                    ? `Resend OTP (${timer}s)`
+                    : 'Resend OTP'}
+                </Text>
               </TouchableOpacity>
 
               <Text style={styles.footer}>
