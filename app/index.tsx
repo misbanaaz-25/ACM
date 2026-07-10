@@ -9,26 +9,36 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
+import AlertModal from '@/components/ui/modals/AlertModal'
 
 export default function LoginScreen() {
   const [mobile, setMobile] = useState('');
   const router = useRouter();
 
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   //logic of validation
   const validateMobile = () => {
 
     if (mobile.trim() === '') {
-      Alert.alert('Error', 'Please enter your mobile number');
+      showAlert('Error', 'Please enter your mobile number');
       return;
     }
 
     if (!/^\d{10}$/.test(mobile.trim())) {
-      Alert.alert('Error', 'Please enter a valid 10 digit mobile number');
+      showAlert('Error', 'Please enter a valid 10 digit mobile number');
       return;
     }
 
@@ -103,6 +113,12 @@ export default function LoginScreen() {
          </View>
        </View>
      </KeyboardAvoidingView>
+      <AlertModal
+               visible={alertVisible}
+               title={alertTitle}
+               message={alertMessage}
+               onClose={() => setAlertVisible(false)}
+             />
     </LinearGradient>
   );
 }

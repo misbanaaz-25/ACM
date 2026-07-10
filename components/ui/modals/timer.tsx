@@ -96,7 +96,7 @@ export default function ScheduleModal({ visible, onClose }: Props) {
 
   const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-  // duration - max 11 hrs 59 mins tak hi jayega, negative nahi hoga
+  // duration - max 11 hrs 59 mins tak hi jayega,
   const incrementDurationHr = () => setDurationHr((prev) => Math.min(prev + 1, 11));
   const decrementDurationHr = () => setDurationHr((prev) => Math.max(prev - 1, 0));
 
@@ -113,8 +113,8 @@ export default function ScheduleModal({ visible, onClose }: Props) {
 
  };
 
-  // Daily select krne pe saare 7 din auto-select ho jayenge
-  // Weekly select krne pe days reset ho jayenge, taki manually choose kr sako
+  // auto select of all seven days after clicking daily
+  // Weekly select krne pe days reset ho jayenge, to select manually
  const handleSelectDaily = () => {
 
    if (repeatType === 'daily') {
@@ -159,7 +159,7 @@ export default function ScheduleModal({ visible, onClose }: Props) {
      repeatType,
      selectedDays,
    });
-
+   onClose()
  };
 
  const handleSubmit = () => {
@@ -273,7 +273,7 @@ export default function ScheduleModal({ visible, onClose }: Props) {
               >
                 {repeatType === 'weekly' && <Feather name="check" size={11} color={colors.white} />}
               </View>
-              <Text style={{ color: colors.text }}>Weekly</Text>
+              <Text style= {{ color: colors.text, fontSize: 14, lineHeight: 25,width:50, }}>Weekly</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -289,7 +289,7 @@ export default function ScheduleModal({ visible, onClose }: Props) {
               >
                 {repeatType === 'daily' && <Feather name="check" size={11} color={colors.white} />}
               </View>
-              <Text style={{ color: colors.text }}>Daily</Text>
+              <Text style={{ color: colors.text, ontSize: 14, lineHeight: 20, width:40,}}>Daily</Text>
             </TouchableOpacity>
           </View>
 
@@ -340,6 +340,7 @@ const styles = StyleSheet.create({
       justifyContent: 'center',
       alignItems: 'center',
   },
+
   container: {
     borderRadius: 16,
     padding: 20,
@@ -379,7 +380,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   durationLabel: {
-    fontSize: 12,
+    fontSize: 14,
+    width: 30,
     marginBottom: 6,
   },
   durationControls: {
@@ -392,15 +394,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   repeatRow: {
-    flexDirection: 'row',
+      flexDirection: 'row',
     justifyContent: 'center',
-    gap: 24,
+    gap: 16,
     marginBottom: 16,
   },
   checkboxRow: {
-    flexDirection: 'row',
+      flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    FlexShrink :0,
   },
   checkbox: {
     width: 16,

@@ -9,10 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
-  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
+import AlertModal from '@/constants/../components/ui/modals/AlertModal';
 
 type Props = {
   visible: boolean;
@@ -28,6 +28,16 @@ export default function BlacklistModal({ visible, onClose }: Props) {
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
 
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   const handleClose = () => {
     setStep('options'); // reset kr do taki next time fir se options se start ho
     setPhoneNumber('');
@@ -38,12 +48,12 @@ export default function BlacklistModal({ visible, onClose }: Props) {
 
   const handleAdd = () => {
     if (phoneNumber.trim() === '') {
-     Alert.alert('Error', 'Please enter phone number');
+     showAlert('Error', 'Please enter phone number');
      return;
    }
 
    if (phoneNumber.length !== 10) {
-     Alert.alert('Error', 'Phone number must be 10 digits');
+     showAlert('Error', 'Phone number must be 10 digits');
      return;
    }
 
@@ -54,6 +64,7 @@ export default function BlacklistModal({ visible, onClose }: Props) {
   };
 
   return (
+      <>
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       {step === 'options' ? (
         // ----- Step 1: Add to blacklist by (options) -----
@@ -133,6 +144,13 @@ export default function BlacklistModal({ visible, onClose }: Props) {
         </KeyboardAvoidingView>
       )}
     </Modal>
+    <AlertModal
+            visible={alertVisible}
+            title={alertTitle}
+            message={alertMessage}
+            onClose={() => setAlertVisible(false)}
+          />
+    </>
   );
 }
 

@@ -10,10 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import AlertModal from '@/components/ui/modals/AlertModal';
 
 export default function LoginScreen() {
   const [mobile, setMobile] = useState('');
@@ -23,27 +23,36 @@ export default function LoginScreen() {
   const [isResendDisabled, setIsResendDisabled] = useState(false);
 
   const router = useRouter();
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
 
-  //logic ofvalidation
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  //logic of validation
   const validateOTP = () => {
 
     if (mobile.trim() === '') {
-      Alert.alert('Error', 'Please enter mobile number');
+      showAlert('Error', 'Please enter mobile number');
       return;
     }
 
     if (mobile.length !== 10) {
-      Alert.alert('Error', 'Mobile number must be 10 digits');
+      showAlert('Error', 'Mobile number must be 10 digits');
       return;
     }
 
     if (otp.trim() === '') {
-      Alert.alert('Error', 'Please enter OTP');
+      showAlert('Error', 'Please enter OTP');
       return;
     }
 
     if (otp.length !== 6) {
-      Alert.alert('Error', 'OTP must be 6 digits');
+      showAlert('Error', 'OTP must be 6 digits');
       return;
     }
 
@@ -51,28 +60,23 @@ export default function LoginScreen() {
 
   };
 
-const handleResendOTP = () => {
+ const handleResendOTP = () => {
 
-  if (mobile.trim() === '') {
-    Alert.alert('Error', 'Please enter mobile number');
-    return;
-  }
+   if (mobile.trim() === '') {
+     showAlert('Error','Please enter mobile number');
+     return;
+   }
 
-  if (mobile.length !== 10) {
-    Alert.alert('Error', 'Mobile number must be 10 digits');
-    return;
-  }
+   if (mobile.length !== 10) {
+     showAlert('Error', 'Mobile number must be 10 digits');
+     return;
+   }
 
-  setIsResendDisabled(true);
-  setTimer(30);
+   setIsResendDisabled(true);
+   setTimer(30);
 
-  Alert.alert(
-    'OTP Sent Successfully',
-    'A new OTP has been sent to your registered mobile number.'
-  );
-
-  // Future API Call
-};
+   // Future API Call
+ };
 
  useEffect(() => {
    let interval: ReturnType<typeof setInterval>;
@@ -168,8 +172,7 @@ const handleResendOTP = () => {
                <Text style={styles.buttonText}>Validate</Text>
              </TouchableOpacity>
 
-
-              <TouchableOpacity
+             <TouchableOpacity
                 style={[
                   styles.button1,
                   isLandscape && { marginBottom: 8 },
@@ -194,6 +197,12 @@ const handleResendOTP = () => {
             </View>
          </View>
         </KeyboardAvoidingView>
+          <AlertModal
+                  visible={alertVisible}
+                  title={alertTitle}
+                  message={alertMessage}
+                  onClose={() => setAlertVisible(false)}
+                />
       </LinearGradient>
     </>
   );

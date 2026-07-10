@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import ScheduleModal from './timer';
+import BatteryLowIcon from '@/components/ui/modals/battery_low_icon';
 
 type Props = {
   onCustomProfilePress: () => void;
@@ -35,7 +36,7 @@ export default function ManageProfileGrid({
       label: 'Busy',
     },
     {
-      icon: <MaterialIcons name="battery-alert" size={32} color={colors.primary} />,
+      icon: <BatteryLowIcon size={32} color={colors.primary} />,
       label: 'Low battery',
     },
     {

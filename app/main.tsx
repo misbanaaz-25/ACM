@@ -38,10 +38,10 @@ export default function HomeScreen() {
   const [showWhitelistModal, setShowWhitelistModal] = useState(false);
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
 
-  // subscribe hone se pehle grid, whitelist, blacklist teeno locked rahenge
+  // grid, whitelist, blacklist all three are locked before subscribe
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  // agar subscribe nahi kiya to alert dikha do, warna asli action chalao
+  // if not subscribed show alert !
   const requireSubscription = (action) => {
     if (!isSubscribed) {
       Alert.alert('Subscribe first', 'Ye feature use karne ke liye pehle subscribe karo.');
@@ -50,7 +50,7 @@ export default function HomeScreen() {
     action();
   };
 
-  // ManageProfileGrid ke andar se bhi alert dikhane ke liye (uske apne internal clicks ke liye)
+  // ManageProfileGrid alerts (for icons)
   const showSubscribeAlert = () => {
     Alert.alert('Subscribe first', 'Ye feature use karne ke liye pehle subscribe karo.');
   };
@@ -77,7 +77,7 @@ export default function HomeScreen() {
               />
               <View>
                 <Text style={[styles.greeting, { color: colors.text }]}>Good Morning John!</Text>
-                <Text style={[styles.subGreeting, { color: colors.text }]}>No important call miss today</Text>
+                <Text style={[styles.subGreeting, { color: colors.text }]}>No important calls missed today</Text>
               </View>
             </View>
             <TouchableOpacity
@@ -88,7 +88,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Subscribe card - jab tak subscribe na ho tabhi dikhega */}
+          {/* Subscribe card  */}
           {!isSubscribed && (
             <SubscribeCard
               cardWidth={cardWidth}
@@ -108,7 +108,7 @@ export default function HomeScreen() {
           <View style={styles.statRow}>
                         <TouchableOpacity
                           style={[styles.statBox, { borderColor: colors.border }]}
-                          onPress={() => router.push('/schedule_profile')}
+                          onPress={() => router.push('/ScheduleProfile')}
                         >
                           <Text style={[styles.statTitle, { color: colors.text }]}>No Profile</Text>
                           <View style={styles.statLinkRow}>
@@ -141,12 +141,9 @@ export default function HomeScreen() {
                           </View>
                         </TouchableOpacity>
                       </View>
-
                     </View>
 
-
-
-          {/* Manage / Schedule Profile card */}
+             {/* Manage / Schedule Profile card */}
           <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>
             <View style={styles.tabRow}>
               <TouchableOpacity onPress={() => setActiveTab('manage')}>
@@ -267,13 +264,13 @@ export default function HomeScreen() {
           onClose={() => setShowScheduleModal(false)}
         />
 
-        {/* Whitelist Modal - options + enter number, sab kuch is component ke andar */}
+        {/* Whitelist Modal - options + enter numbers + alert  */}
         <WhitelistModal
           visible={showWhitelistModal}
           onClose={() => setShowWhitelistModal(false)}
         />
 
-        {/* Blacklist Modal - options + enter number, sab kuch is component ke andar */}
+        {/* Blacklist Modal - options + enter number  */}
         <BlacklistModal
           visible={showBlacklistModal}
           onClose={() => setShowBlacklistModal(false)}
@@ -381,8 +378,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 6,
   },
+
   statLink: {
-    fontSize: 12,
+      fontSize: 12,
     fontWeight: '600',
   },
   tabRow: {
