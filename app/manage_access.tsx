@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import BottomBar from '@/components/ui/modals/BottomBar';
 
 export default function ManageAccessScreen() {
   const router = useRouter();
@@ -104,31 +105,7 @@ export default function ManageAccessScreen() {
            ))}
           </View>
         </ScrollView>
-
-        {/* Bottom tab bar */}
-        <View style={[styles.bottomBar, { width:  width - 40 }]}>
-          <TouchableOpacity
-            style={styles.bottomTab}
-            onPress={() => router.push('/main')}
-          >
-            <Ionicons name="home-outline" size={22} color="#fff" />
-            <Text style={styles.bottomTabText}>Home</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.bottomTab}
-            onPress={() => router.push('/blocked_call')}
-          >
-            <Ionicons name="call" size={22} color="#fff" />
-            <Text style={styles.bottomTabText}>Blocked calls</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.bottomTab}>
-            <Ionicons name="checkmark-circle" size={22} color="#fff" />
-            <Text style={[styles.bottomTabText, { fontWeight: '700' }]}>Manage access</Text>
-            <View style={styles.activeIndicator} />
-          </TouchableOpacity>
-        </View>
+        <BottomBar active="access" />
       </LinearGradient>
     </>
   );

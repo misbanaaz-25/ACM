@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
+import AlertModal from '@/components/ui/modals/AlertModal';
 
 type Props = {
   visible: boolean;
@@ -21,6 +22,8 @@ type Props = {
 
 const ITEM_HEIGHT = 36; // har wheel item ki height, sab jagah same use hogi
 const VISIBLE_ITEMS = 3; // ek time pe 3 items dikhenge (upar, selected, neeche)
+
+
 
 // ----- Reusable Wheel Picker component -----
 type WheelPickerProps = {
@@ -94,6 +97,16 @@ export default function ScheduleModal({ visible, onClose }: Props) {
   const [repeatType, setRepeatType] = useState<'' | 'weekly' | 'daily'>('');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   // duration - max 11 hrs 59 mins tak hi jayega,
@@ -141,12 +154,12 @@ export default function ScheduleModal({ visible, onClose }: Props) {
  const handlePlay = () => {
 
    if (repeatType === '') {
-     Alert.alert('Error', 'Please select Daily or Weekly.');
+     showAlert('Error', 'Please select Daily or Weekly.');
      return;
    }
 
    if (repeatType === 'weekly' && selectedDays.length === 0) {
-     Alert.alert('Error', 'Please select at least one day.');
+     showAlert('Error', 'Please select at least one day.');
      return;
    }
 
@@ -165,12 +178,12 @@ export default function ScheduleModal({ visible, onClose }: Props) {
  const handleSubmit = () => {
 
    if (repeatType === '') {
-     Alert.alert('Error', 'Please select Daily or Weekly.');
+       showAlert('Error', 'Please select Daily or Weekly.');
      return;
    }
 
    if (repeatType === 'weekly' && selectedDays.length === 0) {
-     Alert.alert('Error', 'Please select at least one day.');
+       showAlert('Error', 'Please select at least one day.');
      return;
    }
 
@@ -184,15 +197,24 @@ export default function ScheduleModal({ visible, onClose }: Props) {
      selectedDays,
    });
 
+    setHour(7);
+    setMinute(15);
+    setAmpm('AM');
+    setDurationHr(7);
+    setDurationMin(15);
+    setRepeatType('');
+    setSelectedDays([]);
    onClose();
  };
 
   return (
+
+   <>
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={[styles.container, { width: width * 0.85, backgroundColor: colors.background }]}>
 
-          {/* Header - ab sirf "Set Time" hai, "Set Date" hata diya kyunki uska use nahi tha */}
+          {/* Header - ab sirf "Set Time" hai */}
           <View style={styles.header}>
             <Text style={[styles.tabText, { color: colors.primary, fontWeight: '700' }]}>
               Set Time
@@ -289,7 +311,7 @@ export default function ScheduleModal({ visible, onClose }: Props) {
               >
                 {repeatType === 'daily' && <Feather name="check" size={11} color={colors.white} />}
               </View>
-              <Text style={{ color: colors.text, ontSize: 14, lineHeight: 20, width:40,}}>Daily</Text>
+              <Text style={{ color: colors.text, fontSize: 14, lineHeight: 20, width: 40 }}>Daily</Text>
             </TouchableOpacity>
           </View>
 
@@ -330,6 +352,13 @@ export default function ScheduleModal({ visible, onClose }: Props) {
         </View>
       </View>
     </Modal>
+     <AlertModal
+          visible={alertVisible}
+          title={alertTitle}
+          message={alertMessage}
+          onClose={() => setAlertVisible(false)}
+        />
+      </>
   );
 }
 
@@ -400,10 +429,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   checkboxRow: {
-      flexDirection: 'row',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    FlexShrink :0,
+    flexShrink: 0,
   },
   checkbox: {
     width: 16,

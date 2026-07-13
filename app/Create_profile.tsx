@@ -42,8 +42,8 @@ export default function CreateProfileScreen() {
     }
   };
 
-  const handleSkip = () => router.push('/setting');
-  const handleNext = () => router.push('/setting');
+  const handleSkip = () => router.back();
+  const handleNext = () => router.back();
 
   return (
     <LinearGradient colors={['#FFE8E8', '#FFFFFF']} style={styles.container}>

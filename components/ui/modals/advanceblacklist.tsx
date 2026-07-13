@@ -14,9 +14,9 @@ export default function AdvanceBlacklistContent() {
 
   const [blockByOption, setBlockByOption] = useState('country'); // 'country' ya 'series'
   const [countryCodeInput, setCountryCodeInput] = useState('');
-  const [countryCodes, setCountryCodes] = useState([]);
+  const [countryCodes, setCountryCodes] = useState<string[]>([]);
   const [seriesInput, setSeriesInput] = useState('');
-  const [numberSeries, setNumberSeries] = useState([]);
+  const [numberSeries, setNumberSeries] = useState<string[]>([]);
   const [blockAllExceptIndia, setBlockAllExceptIndia] = useState(false);
 
   const addCountryCode = () => {
@@ -25,7 +25,7 @@ export default function AdvanceBlacklistContent() {
     setCountryCodeInput('');
   };
 
-  const removeCountryCode = (code) => {
+  const removeCountryCode = (code: string) => {
     setCountryCodes(countryCodes.filter((c) => c !== code));
   };
 
@@ -35,7 +35,7 @@ export default function AdvanceBlacklistContent() {
     setSeriesInput('');
   };
 
-  const removeNumberSeries = (series) => {
+  const removeNumberSeries = (series: string) => {
     setNumberSeries(numberSeries.filter((s) => s !== series));
   };
 

@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 
-const BLOCKED_CONTACTS = [
+const WHITELIST_CONTACTS = [
   { id: '1', name: 'Lana Steiner', number: '+91 6584357775' },
   { id: '2', name: 'Betsy Considine', number: '+91 6584357775' },
   { id: '3', name: 'Pat Yundt', number: '+91 6584357775' },
@@ -24,20 +24,20 @@ const BLOCKED_CONTACTS = [
   { id: '9', name: 'Lana Steiner', number: '+91 6584357775' },
 ];
 
-const textColor = Colors?.light?.text ?? '#1A1A1A';
-const subtextColor = Colors?.light?.subtext ?? '#8A8A8A';
-const iconCircleColor = Colors?.light?.iconCircle ?? '#C4C4C4';
-const cardBorderColor = Colors?.light?.cardBorder ?? '#EDEDED';
+const textColor = Colors.light.text;
+const subtextColor = Colors.light.textSecondary;
+const iconCircleColor = Colors.light.border;
+const cardBorderColor = Colors.light.border;
 
-export default function BlockedContacts() {
+export default function WhitelistContacts() {
   const router = useRouter();
-  const [contacts, setContacts] = useState(BLOCKED_CONTACTS);
+  const [contacts, setContacts] = useState(WHITELIST_CONTACTS);
 
-  const handleDelete = (id) => {
+  const handleDelete = (id: string) => {
     setContacts((prev) => prev.filter((contact) => contact.id !== id));
   };
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: { item: typeof WHITELIST_CONTACTS[0] }) => (
     <View style={styles.row}>
       <View style={styles.leftSection}>
         <View style={[styles.iconCircle, { borderColor: iconCircleColor }]}>
@@ -74,7 +74,7 @@ export default function BlockedContacts() {
           <Text style={[styles.backText, { color: textColor }]}>Back</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.title, { color: textColor }]}>WhiteList Contacts</Text>
+        <Text style={[styles.title, { color: textColor }]}>Whitelist Contacts</Text>
 
         <FlatList
           data={contacts}
@@ -87,7 +87,7 @@ export default function BlockedContacts() {
           )}
           ListEmptyComponent={() => (
             <Text style={[styles.emptyText, { color: subtextColor }]}>
-              No Whitelist contact yet
+              No whitelist contacts yet
             </Text>
           )}
         />

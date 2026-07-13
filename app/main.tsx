@@ -8,20 +8,19 @@ import {
   ScrollView,
   Image,
   useWindowDimensions,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import RecordingModal from '@/components/ui/modals/recording';
-import ScheduleModal from '@/components/ui/modals/timer';
 import AdvanceBlacklistContent from '@/components/ui/modals/advanceblacklist';
 import WhitelistModal from '@/components/ui/modals/whitelist';
 import BlacklistModal from '@/components/ui/modals/blacklist';
 import ManageProfileGrid from '@/components/ui/modals/ManageProfileGrid';
-import BottomBar from '../components/ui/modals/BottomBar';
+import BottomBar from '@/components/ui/modals/BottomBar';
 import SubscribeCard from '@/components/ui/modals/SubscribeCard';
+import AlertModal from '@/components/ui/modals/AlertModal';
 
 
 export default function HomeScreen() {
@@ -34,17 +33,26 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState('manage'); // 'manage' | 'schedule'
   const [blacklistTab, setBlacklistTab] = useState('blacklist'); // 'blacklist' | 'advance'
   const [showRecordingModal, setShowRecordingModal] = useState(false);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showWhitelistModal, setShowWhitelistModal] = useState(false);
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
 
   // grid, whitelist, blacklist all three are locked before subscribe
   const [isSubscribed, setIsSubscribed] = useState(false);
 
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   // if not subscribed show alert !
-  const requireSubscription = (action) => {
+  const requireSubscription = (action: () => void) => {
     if (!isSubscribed) {
-      Alert.alert('Subscribe first', 'Ye feature use karne ke liye pehle subscribe karo.');
+      showAlert('Subscribe first', 'subscribe to access your account');
       return;
     }
     action();
@@ -52,7 +60,7 @@ export default function HomeScreen() {
 
   // ManageProfileGrid alerts (for icons)
   const showSubscribeAlert = () => {
-    Alert.alert('Subscribe first', 'Ye feature use karne ke liye pehle subscribe karo.');
+    showAlert('Subscribe first', 'subscribe to access your account');
   };
 
   return (
@@ -105,43 +113,44 @@ export default function HomeScreen() {
               <Text style={[styles.timerLabel, { color: colors.text }]}>My Profile</Text>
               <Text style={[styles.timerValue, { color: colors.text }]}>No profile</Text>
             </View>
-          <View style={styles.statRow}>
-                        <TouchableOpacity
-                          style={[styles.statBox, { borderColor: colors.border }]}
-                          onPress={() => router.push('/ScheduleProfile')}
-                        >
-                          <Text style={[styles.statTitle, { color: colors.text }]}>No Profile</Text>
-                          <View style={styles.statLinkRow}>
-                            <Text style={[styles.statLink, { color: colors.primary }]}>Schedule Profile</Text>
-                            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-                          </View>
-                        </TouchableOpacity>
 
-                        <TouchableOpacity
-                          style={[styles.statBox, { borderColor: colors.border }]}
-                          onPress={() => router.push('/Blocked_contact')}
-                        >
-                          <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
-                          <View style={styles.statLinkRow}>
-                            <Text style={[styles.statLink, { color: colors.primary }]}>Blacklist</Text>
-                            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-                          </View>
-                        </TouchableOpacity>
+            <View style={styles.statRow}>
+              <TouchableOpacity
+                style={[styles.statBox, { borderColor: colors.border }]}
+                onPress={() => router.push('/ScheduleProfile')}
+              >
+                <Text style={[styles.statTitle, { color: colors.text }]}>No Profile</Text>
+                <View style={styles.statLinkRow}>
+                  <Text style={[styles.statLink, { color: colors.primary }]}>Schedule Profile</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.primary} style={{ marginLeft: -23 }} />
+                </View>
+              </TouchableOpacity>
 
-                        <TouchableOpacity
-                          style={[styles.statBox, { borderColor: colors.border }]}
-                          onPress={() => router.push('/Whitelist_contact')}
-                        >
-                          <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
-                          <View style={styles.statLinkRow}>
-                            <Text style={[styles.statLink, { color: colors.primary }]}>
-                              Whitelist
-                            </Text>
-                            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-                          </View>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+              <TouchableOpacity
+                style={[styles.statBox, { borderColor: colors.border }]}
+                onPress={() => router.push('/Blocked_contact')}
+              >
+                <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
+                <View style={styles.statLinkRow}>
+                  <Text style={[styles.statLink, { color: colors.primary }]}>Blacklist</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.statBox, { borderColor: colors.border }]}
+                onPress={() => router.push('/Whitelist_contact')}
+              >
+                <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
+                <View style={styles.statLinkRow}>
+                  <Text style={[styles.statLink, { color: colors.primary }]}>
+                    Whitelist
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
 
              {/* Manage / Schedule Profile card */}
           <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>
@@ -258,12 +267,6 @@ export default function HomeScreen() {
           onClose={() => setShowRecordingModal(false)}
         />
 
-        {/* Schedule Modal */}
-        <ScheduleModal
-          visible={showScheduleModal}
-          onClose={() => setShowScheduleModal(false)}
-        />
-
         {/* Whitelist Modal - options + enter numbers + alert  */}
         <WhitelistModal
           visible={showWhitelistModal}
@@ -275,7 +278,12 @@ export default function HomeScreen() {
           visible={showBlacklistModal}
           onClose={() => setShowBlacklistModal(false)}
         />
-
+        <AlertModal
+          visible={alertVisible}
+          title={alertTitle}
+          message={alertMessage}
+          onClose={() => setAlertVisible(false)}
+        />
       </LinearGradient>
     </>
   );
@@ -307,12 +315,9 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 18,
     fontWeight: '700',
-    width: 300,
   },
   subGreeting: {
     fontSize: 12,
-    height: 20,
-    width: 300,
     marginTop: 2,
   },
   settingsBtn: {
@@ -374,14 +379,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   statLinkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
+     flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 6,
+      justifyContent: 'flex-start'
   },
-
   statLink: {
-      fontSize: 12,
-    fontWeight: '600',
+      flexShrink:0,
+     fontSize: 12,
+      fontWeight: '600',
+      marginRight: 2,
   },
   tabRow: {
     flexDirection: 'row',
@@ -389,7 +396,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tabText: {
-      width:150,
+     width: 150,
     fontSize: 15,
     paddingBottom: 6,
   },
@@ -398,7 +405,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   sectionTitle: {
-    paddingLeft: 118,
+    textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 12,

@@ -21,13 +21,13 @@ type Props = {
 };
 
 export default function RecordingModal({ visible, onClose }: Props) {
-  const [recording, setRecording] = useState<any>(null);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'recorded'>('idle');
 
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [profileName, setProfileName] = useState('');
-  const timerRef = useRef<any>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { width } = useWindowDimensions();
   const cardWidth = width > 500 ? 480 : width * 0.9;
 
@@ -62,7 +62,7 @@ export default function RecordingModal({ visible, onClose }: Props) {
         setRecordingSeconds((prev) => prev + 1);
       }, 1000);
     } catch (err) {
-      console.log(err);
+      console.error('Start recording error:', err);
     }
   };
 
@@ -70,7 +70,7 @@ export default function RecordingModal({ visible, onClose }: Props) {
     try {
       if (!recording) return;
 
-      clearInterval(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
 
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
@@ -79,7 +79,7 @@ export default function RecordingModal({ visible, onClose }: Props) {
       setRecording(null);
       setRecordingState('recorded');
     } catch (err) {
-      console.log(err);
+      console.error('Stop recording error:', err);
     }
   };
 
@@ -90,7 +90,7 @@ export default function RecordingModal({ visible, onClose }: Props) {
       const { sound } = await Audio.Sound.createAsync({ uri: recordedUri });
       await sound.playAsync();
     } catch (err) {
-      console.log(err);
+      console.error('Play recording error:', err);
     }
   };
 
@@ -277,8 +277,7 @@ const styles = StyleSheet.create({
     color: Colors.light.primary,
     marginTop: 10,
     fontSize: 14,
-    width:200,
-    marginLeft: 110,
+    textAlign: 'center',
   },
 
   timer: {
