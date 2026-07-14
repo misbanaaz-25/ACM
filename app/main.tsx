@@ -184,6 +184,7 @@ export default function HomeScreen() {
 
             {/* Manage Profile ka poora grid alag file mein hai - ab subscribe check grid ke andar hi hota hai */}
             <ManageProfileGrid
+              activeTab={activeTab}
               onCustomProfilePress={() => setShowRecordingModal(true)}
               isSubscribed={isSubscribed}
               onRequireSubscription={showSubscribeAlert}

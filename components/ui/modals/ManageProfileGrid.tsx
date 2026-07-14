@@ -3,15 +3,33 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import ScheduleModal from './timer';
-import BatteryLowIcon from '@/components/ui/modals/battery_low_icon';
+import BatteryLowIcon from '@/components/ui/Icon/battery_low_icon';
+import Calendericon from '@/components/ui/Icon/calender';
+import Car from '@/components/ui/Icon/driving';
+import Mycall from '@/components/ui/Icon/mycall';
+import Notwell from '@/components/ui/Icon/notwellicon';
+import Holiday from '@/components/ui/Icon/holidayicon';
+import Movie from '@/components/ui/Icon/movieicon';
+import Training from '@/components/ui/Icon/trainingicon';
+import CallIcon from '@/components/ui/Icon/notavailable';
+import MeetingIcon from '@/components/ui/Icon/meeting';
+import GymIcon from '@/components/ui/Icon/gymicon';
+import TravellingIcon from '@/components/ui/Icon/travelling';
+import PlusIcon from '@/components/ui/Icon/customprofile';
+import CricketIcon from '@/components/ui/Icon/cricketicon';
+import PrayerIcon from '@/components/ui/Icon/prayericon';
+
+import DateModal from '@/components/ui/modals/date';
 
 type Props = {
+  activeTab: 'manage' | 'schedule';
   onCustomProfilePress: () => void;
   isSubscribed: boolean;
   onRequireSubscription: () => void;
 };
 
 export default function ManageProfileGrid({
+   activeTab,
   onCustomProfilePress,
   isSubscribed,
   onRequireSubscription,
@@ -19,93 +37,97 @@ export default function ManageProfileGrid({
   const colors = Colors.light;
   const [showAll, setShowAll] = useState(false);
 
-  // sab icons k lie common ScheduleModal (Custom Profile ko chhod ke)
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showDateModal, setShowDateModal] = useState(false);
 
-  const manageProfileItems = [
-    {
-      icon: <MaterialIcons name="phone-disabled" size={32} color={colors.primary} />,
-      label: 'Not Available',
-    },
-    {
-      icon: <Ionicons name="people-outline" size={32} color={colors.primary} />,
-      label: 'Meeting',
-    },
-    {
-      icon: <Feather name="calendar" size={32} color={colors.primary} />,
-      label: 'Busy',
-    },
-    {
-      icon: <BatteryLowIcon size={32} color={colors.primary} />,
-      label: 'Low battery',
-    },
-    {
-      icon: <MaterialIcons name="beach-access" size={32} color={colors.primary} />,
-      label: 'Holiday',
-    },
-    {
-      icon: <MaterialIcons name="directions-car" size={32} color={colors.primary} />,
-      label: 'Driving',
-    },
-    {
-      icon: <Ionicons name="sad-outline" size={32} color={colors.primary} />,
-      label: 'Not Well',
-    },
-    {
-      icon: <MaterialIcons name="self-improvement" size={32} color={colors.primary} />,
-      label: 'Prayer',
-    },
-    {
-      icon: <Ionicons name="airplane-outline" size={32} color={colors.primary} />,
-      label: 'Travelling',
-    },
-    {
-      icon: <Ionicons name="call-outline" size={32} color={colors.primary} />,
-      label: 'My call only',
-    },
-    {
-      icon: <MaterialIcons name="fitness-center" size={32} color={colors.primary} />,
-      label: 'Gym',
-    },
-    {
-      icon: <MaterialIcons name="cast-for-education" size={32} color={colors.primary} />,
-      label: 'Training',
-    },
-    {
-      icon: <MaterialIcons name="movie-creation" size={32} color={colors.primary} />,
-      label: 'Movie',
-    },
-    {
-      icon: <MaterialIcons name="sports-cricket" size={32} color={colors.primary} />,
-      label: 'Cricket',
-    },
-    {
-      icon: <Feather name="plus" size={32} color={colors.primary} />,
-      label: 'Custom Profile',
-    },
-    {
-      icon: <Ionicons name="bookmark" size={32} color={colors.white} />,
-      label: 'Saved Profile',
-      active: true,
-    },
-  ];
+    const manageProfileItems = [
+      {
+        icon: <CallIcon size={32} color={colors.primary} />,   // "notavailable" wala icon (naam thoda confusing hai, niche note dekho)
+        label: 'Not Available',
+      },
+      {
+        icon: <MeetingIcon size={32} color={colors.primary} />,
+        label: 'Meeting',
+      },
+      {
+        icon: <Calendericon size={32} color={colors.primary} />,
+        label: 'Busy',
+      },
+      {
+        icon: <BatteryLowIcon size={32} color={colors.primary} />,
+        label: 'Low battery',
+      },
+      {
+        icon: <Holiday size={32} color={colors.primary} />,
+        label: 'Holiday',
+      },
+      {
+        icon: <Car size={32} color={colors.primary} />,
+        label: 'Driving',
+      },
+      {
+        icon: <Notwell size={32} color={colors.primary} />,
+        label: 'Not Well',
+      },
+      {
+        icon: <PrayerIcon size={32} color={colors.primary} />,
+        label: 'Prayer',
+      },
+      {
+        icon: <TravellingIcon size={32} color={colors.primary} />,
+        label: 'Travelling',
+      },
+      {
+        icon: <Mycall size={32} color={colors.primary} />,
+        label: 'My call only',
+      },
+      {
+        icon: <GymIcon size={32} color={colors.primary} />,
+        label: 'Gym',
+      },
+      {
+        icon: <Training size={32} color={colors.primary} />,
+        label: 'Training',
+      },
+      {
+        icon: <Movie size={32} color={colors.primary} />,
+        label: 'Movie',
+      },
+      {
+        icon: <CricketIcon size={32} color={colors.primary} />,
+        label: 'Cricket',
+      },
+      {
+        icon: <PlusIcon size={32} color={colors.primary} />,
+        label: 'Custom Profile',
+      },
+      {
+        icon: <Ionicons name="bookmark" size={32} color={colors.white} />,
+        label: 'Saved Profile',
+        active: true,
+      },
+    ];
+
 
   const visibleItems = showAll ? manageProfileItems : manageProfileItems.slice(0, 8);
 
   const handleItemPress = (label: string) => {
-    // subscribe nahi kiya to koi bhi icon kaam nahi karega, bas alert dikhega
+
     if (!isSubscribed) {
       onRequireSubscription();
       return;
     }
 
-    // sirf Custom Profile ka apna alag (recording) modal khulega
     if (label === 'Custom Profile') {
       onCustomProfilePress();
       return;
     }
-    // baaki SAB icons (including GYM) same ScheduleModal kholenge
-    setShowScheduleModal(true);
+
+    if (activeTab === 'manage') {
+      setShowDateModal(true);
+    } else {
+      setShowScheduleModal(true);
+    }
   };
 
   return (
@@ -141,6 +163,15 @@ export default function ManageProfileGrid({
       <ScheduleModal
         visible={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
+      />
+
+      <DateModal
+        visible={showDateModal}
+        onClose={() => setShowDateModal(false)}
+        onSave={(selectedDate) => {
+          setShowDateModal(false);
+          console.log(selectedDate);
+        }}
       />
     </>
   );

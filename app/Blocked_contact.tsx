@@ -65,14 +65,7 @@ export default function BlockedContacts() {
         colors={['#FFE5E5', '#FFFFFF']}
         style={styles.container}
       >
-        <TouchableOpacity
-          style={styles.backRow}
-          onPress={() => router.back()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={20} color={textColor} />
-          <Text style={[styles.backText, { color: textColor }]}>Back</Text>
-        </TouchableOpacity>
+
 
         <Text style={[styles.title, { color: textColor }]}>Blocked Contacts</Text>
 
@@ -101,16 +94,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 60,
     paddingHorizontal: 20,
-  },
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  backText: {
-      width:100,
-    fontSize: 16,
-    marginLeft: 6,
   },
   title: {
     fontSize: 24,

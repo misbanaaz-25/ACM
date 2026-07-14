@@ -126,8 +126,8 @@ export default function ScheduleModal({ visible, onClose }: Props) {
 
  };
 
-  // auto select of all seven days after clicking daily
-  // Weekly select krne pe days reset ho jayenge, to select manually
+  // auto select of all seven days on clicking daily
+  // atleast one day must be selected to  set weekly
  const handleSelectDaily = () => {
 
    if (repeatType === 'daily') {
@@ -154,7 +154,7 @@ export default function ScheduleModal({ visible, onClose }: Props) {
  const handlePlay = () => {
 
    if (repeatType === '') {
-     showAlert('Error', 'Please select Daily or Weekly.');
+     showAlert('Error', 'Please select the days.');
      return;
    }
 
@@ -178,7 +178,7 @@ export default function ScheduleModal({ visible, onClose }: Props) {
  const handleSubmit = () => {
 
    if (repeatType === '') {
-       showAlert('Error', 'Please select Daily or Weekly.');
+       showAlert('Error', 'Please select the days.');
      return;
    }
 
