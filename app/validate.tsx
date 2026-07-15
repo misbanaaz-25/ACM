@@ -1,5 +1,6 @@
 
-import { useState , useEffect } from 'react';
+import { useState , useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -26,6 +27,13 @@ export default function LoginScreen() {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
+
+ useFocusEffect(
+   useCallback(() => {
+     setMobile('');
+     setOtp('');
+   }, [])
+ );
 
   const showAlert = (title: string, message: string) => {
     setAlertTitle(title);
