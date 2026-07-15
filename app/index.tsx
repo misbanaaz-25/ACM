@@ -1,5 +1,5 @@
-import { useState } from 'react';
-
+import { useState, usecallBack } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -18,6 +18,11 @@ import AlertModal from '@/components/ui/modals/AlertModal'
 export default function LoginScreen() {
   const [mobile, setMobile] = useState('');
   const router = useRouter();
+
+  useFocusEffect(useCallback(() => {
+      setMobile('');
+    }, [])
+  );
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
