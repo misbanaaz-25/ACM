@@ -392,14 +392,15 @@ const styles = StyleSheet.create({
       marginRight: 2,
   },
   tabRow: {
-    flexDirection: 'row',
-    gap: 24,
-    marginBottom: 16,
+     flexDirection: 'row',
+     justifyContent: 'space-evenly',
+     marginBottom: 16,
   },
   tabText: {
-     width: 150,
-    fontSize: 15,
-    paddingBottom: 6,
+      minWidth: 120,
+      fontSize: 15,
+      paddingBottom: 6,
+      textAlign: 'center',
   },
   tabUnderline: {
     height: 2,
