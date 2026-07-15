@@ -52,7 +52,7 @@ export default function HomeScreen() {
   // if not subscribed show alert !
   const requireSubscription = (action: () => void) => {
     if (!isSubscribed) {
-      showAlert('Subscribe first', 'subscribe to access your account');
+      showAlert('Subscribe first', 'Subscribe to access Service of Airtel Call Manager');
       return;
     }
     action();
@@ -60,7 +60,7 @@ export default function HomeScreen() {
 
   // ManageProfileGrid alerts (for icons)
   const showSubscribeAlert = () => {
-    showAlert('Subscribe first', 'subscribe to access your account');
+    showAlert('Subscribe first', 'Subscribe to access Service of Airtel Call Manager');
   };
 
   return (

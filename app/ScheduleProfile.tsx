@@ -42,10 +42,7 @@ export default function ScheduledProfileScreen() {
    >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backRow} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-          <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
-        </TouchableOpacity>
+
         <Text style={[styles.title, { color: colors.text }]}>Scheduled Profile</Text>
       </View>
 
@@ -114,15 +111,6 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 20,
-  },
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 16,
-  },
-  backText: {
-    fontSize: 15,
   },
   title: {
     fontSize: 20,
