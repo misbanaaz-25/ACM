@@ -193,7 +193,7 @@ export default function HomeScreen() {
 
           {/* Whitelist card */}
           <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>
-            <Text style={[styles.sectionTitle, { color: colors.primary }]}>whitelist</Text>
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}> Add to whitelist</Text>
             <Text style={[styles.sectionSubtitle, { color: colors.text }]}>
               Enter the number you want to always allow
             </Text>
@@ -407,7 +407,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   sectionTitle: {
-    textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 12,

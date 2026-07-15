@@ -18,8 +18,8 @@ import TravellingIcon from '@/components/ui/Icon/travelling';
 import PlusIcon from '@/components/ui/Icon/customprofile';
 import CricketIcon from '@/components/ui/Icon/cricketicon';
 import PrayerIcon from '@/components/ui/Icon/prayericon';
+import SmallTimer from '@/components/ui/modals/smalltimer';
 
-import DateModal from '@/components/ui/modals/date';
 
 type Props = {
   activeTab: 'manage' | 'schedule';
@@ -38,11 +38,12 @@ export default function ManageProfileGrid({
   const [showAll, setShowAll] = useState(false);
 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [showDateModal, setShowDateModal] = useState(false);
+  const [showSmallTimer, setShowSmallTimer] = useState(false);
+
 
     const manageProfileItems = [
       {
-        icon: <CallIcon size={32} color={colors.primary} />,   // "notavailable" wala icon (naam thoda confusing hai, niche note dekho)
+        icon: <CallIcon size={32} color={colors.primary} />,
         label: 'Not Available',
       },
       {
@@ -124,7 +125,7 @@ export default function ManageProfileGrid({
     }
 
     if (activeTab === 'manage') {
-      setShowDateModal(true);
+      setShowSmallTimer(true);
     } else {
       setShowScheduleModal(true);
     }
@@ -159,20 +160,27 @@ export default function ManageProfileGrid({
         </Text>
       </TouchableOpacity>
 
-      {/* Schedule Modal (timer.tsx) - Custom Profile chhod ke sab icons k lie */}
+      <SmallTimer
+        visible={showSmallTimer}
+        onClose={() => setShowSmallTimer(false)}
+        onSubmit={(hour, minute) => {
+          setShowSmallTimer(false);
+          console.log('Manage Profile time:', hour, minute);
+        }}
+        onStart={(hour, minute) => {
+          console.log('Timer started:', hour, minute);
+        }}
+      />
+
       <ScheduleModal
         visible={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
+        onSaveDate={(date) => console.log('Date saved:', date)}
+        onSubmitTime={(data) => console.log('Time submitted:', data)}
       />
 
-      <DateModal
-        visible={showDateModal}
-        onClose={() => setShowDateModal(false)}
-        onSave={(selectedDate) => {
-          setShowDateModal(false);
-          console.log(selectedDate);
-        }}
-      />
+      {/* Schedule Profile tab → pehle choice popup (Set Date / Set Time) */}
+
     </>
   );
 }
