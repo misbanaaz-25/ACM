@@ -19,6 +19,7 @@ type Props = {
   onClose: () => void;
   onSaveDate?: (date: string) => void;
   onSubmitTime?: (data: {
+    date: string | null;
     hour: number;
     minute: number;
     ampm: 'AM' | 'PM';
@@ -94,7 +95,8 @@ export default function ScheduleModal({ visible, onClose, onSaveDate, onSubmitTi
   const { width } = useWindowDimensions();
   const colors = Colors.light;
 
-  const [activeTab, setActiveTab] = useState<'date' | 'time'>('time');
+  // ----- Wizard step control (ab click se switch nahi hota, sirf Next/Back se) -----
+  const [activeTab, setActiveTab] = useState<'date' | 'time'>('date');
 
   const hoursData = Array.from({ length: 12 }, (_, i) => i + 1);
   const minutesData = Array.from({ length: 60 }, (_, i) => i);
@@ -123,6 +125,20 @@ export default function ScheduleModal({ visible, onClose, onSaveDate, onSubmitTi
     setAlertTitle(title);
     setAlertMessage(message);
     setAlertVisible(true);
+  };
+
+  // Modal band hone par sab reset karke wapas 'date' step pe le aao
+  const resetAndClose = () => {
+    setActiveTab('date');
+    setSelectedDate(null);
+    setHour(7);
+    setMinute(15);
+    setAmpm('AM');
+    setDurationHr(7);
+    setDurationMin(15);
+    setRepeatType('');
+    setSelectedDays([]);
+    onClose();
   };
 
   const incrementDurationHr = () => setDurationHr((prev) => Math.min(prev + 1, 11));
@@ -156,6 +172,13 @@ export default function ScheduleModal({ visible, onClose, onSaveDate, onSubmitTi
     setRepeatType('weekly');
   };
 
+  const formatDate = (date: Date) => {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
   const handlePlay = () => {
     if (repeatType === '') {
       showAlert('Error', 'Please select the days.');
@@ -166,8 +189,11 @@ export default function ScheduleModal({ visible, onClose, onSaveDate, onSubmitTi
       return;
     }
 
-    console.log('Preview schedule:', { hour, minute, ampm, durationHr, durationMin, repeatType, selectedDays });
-    onClose();
+    console.log('Preview schedule:', {
+      date: selectedDate ? formatDate(selectedDate) : null,
+      hour, minute, ampm, durationHr, durationMin, repeatType, selectedDays,
+    });
+    resetAndClose();
   };
 
   const handleSubmit = () => {
@@ -180,18 +206,15 @@ export default function ScheduleModal({ visible, onClose, onSaveDate, onSubmitTi
       return;
     }
 
-    onSubmitTime?.({ hour, minute, ampm, durationHr, durationMin, repeatType, selectedDays });
+    onSubmitTime?.({
+      date: selectedDate ? formatDate(selectedDate) : null,
+      hour, minute, ampm, durationHr, durationMin, repeatType, selectedDays,
+    });
 
-    setHour(7);
-    setMinute(15);
-    setAmpm('AM');
-    setDurationHr(7);
-    setDurationMin(15);
-    setRepeatType('');
-    setSelectedDays([]);
-    onClose();
+    resetAndClose();
   };
 
+  // ---------- Set Date logic ----------
   const goToPrevMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -233,26 +256,23 @@ export default function ScheduleModal({ visible, onClose, onSaveDate, onSubmitTi
     setSelectedDate(new Date(currentYear, currentMonth, day));
   };
 
-  const formatDate = (date: Date) => {
-    const dd = String(date.getDate()).padStart(2, '0');
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const yyyy = date.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  };
-
   const handleCancelDate = () => {
-    setSelectedDate(null);
-    onClose();
+    resetAndClose();
   };
 
-  const handleSaveDate = () => {
+  // Next button - date select hone ke baad hi 'time' step pe jayega
+  const handleNextFromDate = () => {
     if (!selectedDate) {
-      showAlert('Select Date', 'Please select a date before saving.');
+      showAlert('Select Date', 'Please select a date before proceeding.');
       return;
     }
     onSaveDate?.(formatDate(selectedDate));
-    setSelectedDate(null);
-    onClose();
+    setActiveTab('time');
+  };
+
+  // Back arrow - Set Time se wapas Set Date pe
+  const handleBackToDate = () => {
+    setActiveTab('date');
   };
 
   const calendarDays = getCalendarDays();
@@ -263,44 +283,30 @@ export default function ScheduleModal({ visible, onClose, onSaveDate, onSubmitTi
         <View style={styles.overlay}>
           <View style={[styles.container, { width: width * 0.85, backgroundColor: colors.background }]}>
 
-            {/* Header - centered tabs, fixed close icon */}
+            {/* Header - step label + back arrow (sirf Set Time step pe) + close icon */}
             <View style={styles.header}>
-              <View style={styles.headerSide} />
+              <View style={styles.headerSide}>
+                {activeTab === 'time' && (
+                  <TouchableOpacity onPress={handleBackToDate}>
+                    <Feather name="chevron-left" size={22} color={colors.text} />
+                  </TouchableOpacity>
+                )}
+              </View>
 
               <View style={styles.tabsRow}>
-                <TouchableOpacity onPress={() => setActiveTab('date')}>
-                  <Text
-                    style={[
-                      styles.tabText,
-                      { color: activeTab === 'date' ? colors.primary : colors.text },
-                      activeTab === 'date' && styles.tabTextActive,
-                    ]}
-                  >
-                    Set Date
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setActiveTab('time')} style={styles.tabButton}>
-                  <Text
-                    style={[
-                      styles.tabText,
-                      { color: activeTab === 'time' ? colors.primary : colors.text },
-                      activeTab === 'time' && styles.tabTextActive,
-                    ]}
-                  >
-                    Set Time
-                  </Text>
-                </TouchableOpacity>
+                <Text style={[styles.tabText, { color: colors.primary }, styles.tabTextActive]}>
+                  {activeTab === 'date' ? 'Set Date' : 'Set Time'}
+                </Text>
               </View>
 
               <View style={[styles.headerSide, styles.headerRight]}>
-                <TouchableOpacity onPress={onClose}>
+                <TouchableOpacity onPress={resetAndClose}>
                   <Feather name="x" size={20} color={colors.text} />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* ---------- SET DATE TAB CONTENT ---------- */}
+            {/* ---------- SET DATE STEP ---------- */}
             {activeTab === 'date' && (
               <>
                 <View style={styles.monthRow}>
@@ -363,14 +369,14 @@ export default function ScheduleModal({ visible, onClose, onSaveDate, onSubmitTi
                     <Text style={[styles.playText, { color: colors.primary }]}>Cancel</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={handleSaveDate}>
-                    <Text style={[styles.submitText, { color: colors.white }]}>Save</Text>
+                  <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={handleNextFromDate}>
+                    <Text style={[styles.submitText, { color: colors.white }]}>Next</Text>
                   </TouchableOpacity>
                 </View>
               </>
             )}
 
-            {/* ---------- SET TIME TAB CONTENT ---------- */}
+            {/* ---------- SET TIME STEP ---------- */}
             {activeTab === 'time' && (
               <>
                 <View style={styles.pickerRow}>
@@ -520,15 +526,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerSide: {
-    width: 20,
+    width: 24,
   },
   headerRight: {
     alignItems: 'flex-end',
-  },
-  tabButton: {
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   tabsRow: {
     flex: 1,
@@ -537,14 +538,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabText: {
-     width:100,
     fontSize: 14,
     textAlign: 'center',
   },
   tabTextActive: {
-    width:100,
     fontWeight: '700',
-
+    textDecorationLine: 'underline',
   },
   pickerRow: {
     flexDirection: 'row',
