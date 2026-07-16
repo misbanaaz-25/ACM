@@ -10,6 +10,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import TutorialIcon from '@/components/ui/Icon/tutorial_icon';
+import FeedbackIcon from '@/components/ui/Icon/feedback_icon';
+import HelpIcon from '@/components/ui/Icon/help_icon';
+import ShareIcon from '@/components/ui/Icon/share_icon';
+import UnsubscribeIcon from '@/components/ui/Icon/unsubscribe_icon';
 
 export default function SettingsScreen() {
   const { width } = useWindowDimensions();
@@ -17,12 +22,12 @@ export default function SettingsScreen() {
   const router = useRouter();
 
   const menuItems = [
-    { icon: <Feather name="zap" size={20} color="#000" />, label: 'View tutorial' },
-    { icon: <Ionicons name="happy-outline" size={20} color="#000" />, label: 'Feedback' },
-    { icon: <Ionicons name="help-circle-outline" size={20} color="#000" />, label: 'Help' },
+    { icon: <TutorialIcon size={20} color="#000" />, label: 'View tutorial' },
+    { icon: <FeedbackIcon size={20} color="#000" />, label: 'Feedback' },
+    { icon: <HelpIcon size={20} color="#000" />, label: 'Help' },
     { icon: <Ionicons name="eye-outline" size={20} color="#000" />, label: 'Show Tips' },
-    { icon: <Feather name="share-2" size={20} color="#000" />, label: 'Share app' },
-    { icon: <Ionicons name="sad-outline" size={20} color="#000" />, label: 'unsubscribe' },
+    { icon: <ShareIcon size={20} color="#000" />, label: 'Share app' },
+    { icon: <UnsubscribeIcon size={20} color="#000" />, label: 'unsubscribe' },
   ];
 
   return (
@@ -158,7 +163,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   menuLabel: {
-      width:100,
+    width: 100,
     fontSize: 15,
     color: '#000',
   },

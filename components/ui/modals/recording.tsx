@@ -5,20 +5,21 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  StatusBar,
-  ScrollView,
-  Image,
   Modal,
   useWindowDimensions,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
+import PlayIcon from '@/components/ui/Icon/play_icon';
+import PauseIcon from '@/components/ui/Icon/pause_icon';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
 };
+
+const MAX_BAR_SLOTS = 35;
 
 export default function RecordingModal({ visible, onClose }: Props) {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -27,15 +28,24 @@ export default function RecordingModal({ visible, onClose }: Props) {
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [profileName, setProfileName] = useState('');
+  const [bars, setBars] = useState<number[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
   const { width } = useWindowDimensions();
-  const cardWidth = width > 500 ? 480 : width * 0.9;
 
   useEffect(() => {
     if (!visible) {
       resetRecording();
     }
   }, [visible]);
+
+  const normalizeMetering = (db: number) => {
+    const minDb = -60;
+    const clamped = Math.max(minDb, Math.min(0, db));
+    return (clamped - minDb) / (0 - minDb);
+  };
 
   const startRecording = async () => {
     try {
@@ -50,13 +60,24 @@ export default function RecordingModal({ visible, onClose }: Props) {
         playsInSilentModeIOS: true,
       });
 
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      const recordingOptions = {
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        isMeteringEnabled: true,
+      };
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(recordingOptions);
+
+      newRecording.setOnRecordingStatusUpdate((status) => {
+        if (status.isRecording && status.metering !== undefined) {
+          const normalized = normalizeMetering(status.metering);
+          setBars((prev) => [...prev, normalized]);
+        }
+      });
 
       setRecording(newRecording);
       setRecordingState('recording');
       setRecordingSeconds(0);
+      setBars([]);
 
       timerRef.current = setInterval(() => {
         setRecordingSeconds((prev) => prev + 1);
@@ -87,8 +108,31 @@ export default function RecordingModal({ visible, onClose }: Props) {
     try {
       if (!recordedUri) return;
 
+      if (isPlaying) {
+        if (soundRef.current) {
+          await soundRef.current.pauseAsync();
+        }
+        setIsPlaying(false);
+        return;
+      }
+
+      if (soundRef.current) {
+        await soundRef.current.playAsync();
+        setIsPlaying(true);
+        return;
+      }
+
       const { sound } = await Audio.Sound.createAsync({ uri: recordedUri });
+      soundRef.current = sound;
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+        }
+      });
+
       await sound.playAsync();
+      setIsPlaying(true);
     } catch (err) {
       console.error('Play recording error:', err);
     }
@@ -99,6 +143,10 @@ export default function RecordingModal({ visible, onClose }: Props) {
       if (recording) {
         await recording.stopAndUnloadAsync();
       }
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
     } catch (err) {
       console.log('Reset error:', err);
     }
@@ -107,12 +155,39 @@ export default function RecordingModal({ visible, onClose }: Props) {
     setRecordingState('idle');
     setRecordedUri(null);
     setRecordingSeconds(0);
+    setBars([]);
+    setIsPlaying(false);
+  };
+
+  const renderWaveform = (filledColor: string, emptyColor: string, showEmptySlots: boolean) => {
+    const totalSlots = showEmptySlots ? MAX_BAR_SLOTS : bars.length || 1;
+
+    return (
+      <View style={styles.waveformRow}>
+        {Array.from({ length: totalSlots }).map((_, index) => {
+          const hasData = index < bars.length;
+          const heightPercent = hasData ? Math.max(0.15, bars[index]) : 0.15;
+
+          return (
+            <View
+              key={index}
+              style={[
+                styles.waveBar,
+                {
+                  height: 60 * heightPercent,
+                  backgroundColor: hasData ? filledColor : emptyColor,
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
+    );
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
-
         <View style={styles.container}>
 
           {/* Header */}
@@ -134,63 +209,74 @@ export default function RecordingModal({ visible, onClose }: Props) {
 
           {/* IDLE STATE */}
           {recordingState === 'idle' && (
-            <TouchableOpacity
-              style={[styles.micBtn, { width: width * 0.5 }]}
-              onPress={startRecording}
-            >
-              <Feather name="mic" size={24} color="#fff" />
-              <Text style={styles.micText}>Tap to start recording</Text>
-            </TouchableOpacity>
+            <View style={styles.idleWrapper}>
+              <TouchableOpacity style={styles.micBtn} onPress={startRecording}>
+                <Feather name="mic" size={28} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.micText}>
+                Tap on the microphone to start recording personalized voice message
+              </Text>
+            </View>
           )}
 
           {/* RECORDING STATE */}
           {recordingState === 'recording' && (
-            <View style={styles.center}>
-              <TouchableOpacity onPress={stopRecording}>
-                <Text style={styles.stopText}>Stop</Text>
-              </TouchableOpacity>
+            <View>
+              <View style={styles.waveformContainer}>
+                {renderWaveform(Colors.light.primary, Colors.light.border, true)}
+
+                <TouchableOpacity style={styles.actionInline} onPress={stopRecording}>
+                  <Text style={styles.stopText}>Stop</Text>
+                  <PauseIcon size={20} color={Colors.light.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.timer}>
-                00:{String(recordingSeconds).padStart(2, '0')}
+                00:{String(recordingSeconds).padStart(2, '0')} sec
               </Text>
             </View>
           )}
 
           {/* RECORDED STATE */}
           {recordingState === 'recorded' && (
-            <View style={styles.center}>
+            <View>
+              <View style={styles.waveformContainer}>
+                {renderWaveform(Colors.light.primary, Colors.light.primary, false)}
 
-              <TouchableOpacity onPress={playRecording}>
-                <Text style={styles.playText}>Play</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.actionInline} onPress={playRecording}>
+                  <Text style={styles.playText}>{isPlaying ? 'Pause' : 'Play'}</Text>
+                  <PlayIcon size={20} color={Colors.light.primary} />
+                </TouchableOpacity>
+              </View>
 
-              <Text style={styles.timer}>
-                00:{String(recordingSeconds).padStart(2, '0')}
-              </Text>
+              <View style={styles.recordedFooter}>
+                <Text style={styles.timer}>
+                  00:{String(recordingSeconds).padStart(2, '0')} sec
+                </Text>
 
-              <TouchableOpacity onPress={resetRecording}>
-                <Text style={styles.resetText}>Record Again</Text>
-              </TouchableOpacity>
+                <TouchableOpacity onPress={resetRecording}>
+                  <Text style={styles.resetText}>Record Again</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
           {/* CREATE BUTTON */}
-         <TouchableOpacity
-           disabled={profileName.trim() === '' || recordingState !== 'recorded'}
-           style={[
-             styles.createBtn,
-             (profileName.trim() === '' || recordingState !== 'recorded') && { opacity: 0.5 }
-           ]}
-           onPress={() => {
-             console.log('Profile created:', profileName, recordedUri);
-               setProfileName('');   //Name clear
-               resetRecording();     // Recording reset
-
-             onClose();
-           }}
-         >
-           <Text style={styles.createText}>Create Profile</Text>
-         </TouchableOpacity>
+          <TouchableOpacity
+            disabled={profileName.trim() === '' || recordingState !== 'recorded'}
+            style={[
+              styles.createBtn,
+              (profileName.trim() === '' || recordingState !== 'recorded') && { opacity: 0.5 },
+            ]}
+            onPress={() => {
+              console.log('Profile created:', profileName, recordedUri);
+              setProfileName('');
+              resetRecording();
+              onClose();
+            }}
+          >
+            <Text style={styles.createText}>Create Profile</Text>
+          </TouchableOpacity>
 
         </View>
       </View>
@@ -209,9 +295,8 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.light.background,
     borderRadius: 25,
-
     padding: 20,
-    width: '100%',
+    width: '90%',
     maxHeight: '80%',
   },
 
@@ -225,7 +310,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: Colors.light.primary,
   },
 
   input: {
@@ -238,59 +323,89 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
 
-  micBtn: {
-    backgroundColor: Colors.light.primary,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-  },
-
-  micText: {
-    color: Colors.light.white,
-    marginTop: 8,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-
-  center: {
+  idleWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 20,
   },
 
+  micBtn: {
+    backgroundColor: Colors.light.primary,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+
+  micText: {
+    color: Colors.light.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+
+  waveformContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+
+  waveformRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    height: 60,
+  },
+
+  waveBar: {
+    width: 3,
+    borderRadius: 2,
+  },
+
+  actionInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 10,
+  },
+
   stopText: {
-    color: Colors.light.error,
-    fontSize: 16,
+    color: Colors.light.textSecondary,
+    fontSize: 13,
     fontWeight: '600',
   },
 
   playText: {
-    color: Colors.light.success,
-    fontSize: 16,
+    color: Colors.light.primary,
+    fontSize: 13,
     fontWeight: '600',
   },
 
   resetText: {
     color: Colors.light.primary,
-    marginTop: 10,
-    fontSize: 14,
-    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   timer: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.light.text,
-    marginTop: 10,
+    fontSize: 12,
+    color: Colors.light.textSecondary,
+    marginTop: 8,
+  },
+
+  recordedFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 
   createBtn: {
     backgroundColor: Colors.light.primary,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 99,
     alignItems: 'center',
     marginTop: 25,
     width: '100%',

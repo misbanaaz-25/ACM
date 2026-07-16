@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
+import HomeIcon from '@/components/ui/Icon/home_icon';
+import CallLogsIcon from '@/components/ui/Icon/call_logs_icon';
+import ManageAccessIcon from '@/components/ui/Icon/manage_access_icon';
 
 type Props = {
   active?: string; // 'home' | 'calls' | 'access'
@@ -17,7 +19,7 @@ export default function BottomBar({ active = 'home' }: Props) {
     <View style={[styles.bottomBar, { width: width - 40, backgroundColor: colors.primary }]}>
 
       <TouchableOpacity style={styles.bottomTab} onPress={() => router.push('/main')}>
-        <Ionicons name={active === 'home' ? 'home' : 'home-outline'} size={22} color={colors.white} />
+        <HomeIcon size={22} color={colors.white} />
         <Text style={[styles.bottomTabText, { color: colors.white }, active === 'home' && styles.activeText]}>
           Home
         </Text>
@@ -25,7 +27,7 @@ export default function BottomBar({ active = 'home' }: Props) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.bottomTab} onPress={() => router.push('/blocked_call')}>
-        <Ionicons name={active === 'calls' ? 'call' : 'call-outline'} size={22} color={colors.white} />
+        <CallLogsIcon size={22} color={colors.white} />
         <Text style={[styles.bottomTabText, { color: colors.white }, active === 'calls' && styles.activeText]}>
           Call logs
         </Text>
@@ -33,11 +35,7 @@ export default function BottomBar({ active = 'home' }: Props) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.bottomTab} onPress={() => router.push('/manage_access')}>
-        <Ionicons
-          name={active === 'access' ? 'checkmark-circle' : 'checkmark-circle-outline'}
-          size={22}
-          color={colors.white}
-        />
+        <ManageAccessIcon size={22} color={colors.white} />
         <Text style={[styles.bottomTabText, { color: colors.white }, active === 'access' && styles.activeText]}>
           Manage access
         </Text>
@@ -55,7 +53,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 99,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-evenly',
     paddingVertical: 14,
     elevation: 5,
     shadowColor: '#000',
