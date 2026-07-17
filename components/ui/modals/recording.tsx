@@ -8,7 +8,7 @@ import {
   Modal,
   useWindowDimensions,
 } from 'react-native';
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import PlayIcon from '@/components/ui/Icon/play_icon';
@@ -27,6 +27,8 @@ export default function RecordingModal({ visible, onClose }: Props) {
 
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [playbackSeconds, setPlaybackSeconds] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
   const [profileName, setProfileName] = useState('');
   const [bars, setBars] = useState<number[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -41,10 +43,34 @@ export default function RecordingModal({ visible, onClose }: Props) {
     }
   }, [visible]);
 
+  // cleanup jab component hi unmount ho jaye
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => {});
+      }
+    };
+  }, []);
+
   const normalizeMetering = (db: number) => {
     const minDb = -60;
     const clamped = Math.max(minDb, Math.min(0, db));
     return (clamped - minDb) / (0 - minDb);
+  };
+
+  // recording jitni bhi lambi ho, iske bars ko hamesha fixed number
+  // (MAX_BAR_SLOTS) mein badal deta hai, taaki recorded screen pe
+  // waveform hamesha ek jaisa thin aur poori width mein even dikhe
+  const resampleBars = (data: number[], targetLength: number) => {
+    if (data.length === 0) return new Array(targetLength).fill(0.15);
+
+    const result: number[] = [];
+    for (let i = 0; i < targetLength; i++) {
+      const sourceIndex = Math.floor((i / targetLength) * data.length);
+      result.push(data[sourceIndex]);
+    }
+    return result;
   };
 
   const startRecording = async () => {
@@ -55,9 +81,14 @@ export default function RecordingModal({ visible, onClose }: Props) {
         return;
       }
 
+      // recording mode on - poora config diya taki sab devices pe sahi kaam kare
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
       });
 
       const recordingOptions = {
@@ -70,7 +101,14 @@ export default function RecordingModal({ visible, onClose }: Props) {
       newRecording.setOnRecordingStatusUpdate((status) => {
         if (status.isRecording && status.metering !== undefined) {
           const normalized = normalizeMetering(status.metering);
-          setBars((prev) => [...prev, normalized]);
+          // sliding window - purana bar hata ke naya push, warna 35 ke baad freeze ho jata tha
+          setBars((prev) => {
+            const updated = [...prev, normalized];
+            if (updated.length > MAX_BAR_SLOTS) {
+              return updated.slice(updated.length - MAX_BAR_SLOTS);
+            }
+            return updated;
+          });
         }
       });
 
@@ -91,10 +129,27 @@ export default function RecordingModal({ visible, onClose }: Props) {
     try {
       if (!recording) return;
 
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
 
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
+
+      // recording mode off karke playback mode enable karna - yeh missing tha
+      // pehle, isi wajah se stop ke baad play karte time error/no-sound aata tha
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      // bars ko fixed count mein badal rahe - waveform ka width consistent rahega
+      setBars((prev) => resampleBars(prev, MAX_BAR_SLOTS));
 
       setRecordedUri(uri);
       setRecording(null);
@@ -108,31 +163,57 @@ export default function RecordingModal({ visible, onClose }: Props) {
     try {
       if (!recordedUri) return;
 
+      // agar already playing hai toh pause karo - state yahan set nahi karenge,
+      // status callback khud kar dega, warna race condition ban jaati hai
       if (isPlaying) {
         if (soundRef.current) {
           await soundRef.current.pauseAsync();
         }
-        setIsPlaying(false);
         return;
       }
 
+      // sound pehle se bana hua hai (ek baar sun chuki ho) toh usi ko reuse karo
+      // isse baar baar play/pause karke sunna reliably chalega, submit se pehle
       if (soundRef.current) {
         await soundRef.current.playAsync();
-        setIsPlaying(true);
         return;
       }
 
-      const { sound } = await Audio.Sound.createAsync({ uri: recordedUri });
+      // extra safe - playback se pehle mode confirm kar rahe, full config
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: recordedUri },
+        { shouldPlay: false }
+      );
       soundRef.current = sound;
 
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+      // ye ek hi jagah hai jaha se isPlaying set hoga - single source of truth
+      sound.setOnPlaybackStatusUpdate(async (status) => {
+        if (!status.isLoaded) return;
+
+        setIsPlaying(status.isPlaying);
+        setPlaybackSeconds(Math.floor((status.positionMillis || 0) / 1000));
+
+        if (status.durationMillis) {
+          setTotalDuration(Math.floor(status.durationMillis / 1000));
+        }
+
+        if (status.didJustFinish) {
+          await sound.setPositionAsync(0);
           setIsPlaying(false);
+          setPlaybackSeconds(0);
         }
       });
 
       await sound.playAsync();
-      setIsPlaying(true);
     } catch (err) {
       console.error('Play recording error:', err);
     }
@@ -140,6 +221,10 @@ export default function RecordingModal({ visible, onClose }: Props) {
 
   const resetRecording = async () => {
     try {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       if (recording) {
         await recording.stopAndUnloadAsync();
       }
@@ -155,8 +240,15 @@ export default function RecordingModal({ visible, onClose }: Props) {
     setRecordingState('idle');
     setRecordedUri(null);
     setRecordingSeconds(0);
+    setPlaybackSeconds(0);
+    setTotalDuration(0);
     setBars([]);
     setIsPlaying(false);
+  };
+
+  // seconds ko "00:06" jaisa format karta hai
+  const formatTime = (totalSeconds: number) => {
+    return `00:${String(totalSeconds).padStart(2, '0')}`;
   };
 
   const renderWaveform = (filledColor: string, emptyColor: string, showEmptySlots: boolean) => {
@@ -244,14 +336,21 @@ export default function RecordingModal({ visible, onClose }: Props) {
                 {renderWaveform(Colors.light.primary, Colors.light.primary, false)}
 
                 <TouchableOpacity style={styles.actionInline} onPress={playRecording}>
-                  <Text style={styles.playText}>{isPlaying ? 'Pause' : 'Play'}</Text>
-                  <PlayIcon size={20} color={Colors.light.primary} />
+                  <Text style={styles.playText}>
+                    {isPlaying ? 'Pause' : 'Play'}
+                  </Text>
+                {isPlaying ? (
+                    <PauseIcon size={20} color={Colors.light.primary} />
+                  ) : (
+                    <PlayIcon size={20} color={Colors.light.primary} />
+                  )}
                 </TouchableOpacity>
+
               </View>
 
               <View style={styles.recordedFooter}>
                 <Text style={styles.timer}>
-                  00:{String(recordingSeconds).padStart(2, '0')} sec
+                  {formatTime(playbackSeconds)}/{formatTime(totalDuration || recordingSeconds)}
                 </Text>
 
                 <TouchableOpacity onPress={resetRecording}>
@@ -357,12 +456,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    height: 60,
+    height: 50,
   },
 
   waveBar: {
-    width: 3,
+    flex: 1,
+    minWidth: 2,
     borderRadius: 2,
+    height: 50,
   },
 
   actionInline: {
