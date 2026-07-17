@@ -495,6 +495,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.light.textSecondary,
     marginTop: 8,
+
   },
 
   recordedFooter: {
