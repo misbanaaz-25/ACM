@@ -58,8 +58,8 @@ export default function LoginScreen() {
       return;
     }
 
-    if (otp.length !== 6) {
-      showAlert('Error', 'OTP must be 6 digits');
+    if (otp.length !== 5) {
+      showAlert('Error', 'OTP must be 5 digits');
       return;
     }
 
@@ -165,7 +165,7 @@ export default function LoginScreen() {
                   placeholder=" Enter OTP"
                   placeholderTextColor="#aaa"
                   keyboardType="phone-pad"
-                  maxLength={6}
+                  maxLength={5}
                   value={otp}
                   onChangeText={setOtp}
                 />

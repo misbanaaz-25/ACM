@@ -1,4 +1,4 @@
-import { useState, useCallBack } from 'react';
+import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -14,9 +14,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
 import AlertModal from '@/components/ui/modals/AlertModal'
+import { sendOtp } from '@/components/services/acmApi';
 
 export default function LoginScreen() {
   const [mobile, setMobile] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useFocusEffect(useCallback(() => {
@@ -35,7 +37,7 @@ export default function LoginScreen() {
   };
 
   //logic of validation
-  const validateMobile = () => {
+  const validateMobile = async () => {
 
     if (mobile.trim() === '') {
       showAlert('Error', 'Please enter your mobile number');
@@ -47,7 +49,16 @@ export default function LoginScreen() {
       return;
     }
 
-    router.push('/validate');
+    // ab yaha se OTP API call karenge
+    setLoading(true);
+    const result = await sendOtp(mobile.trim());
+    setLoading(false);
+
+    if (result.success) {
+      router.push('/validate');
+    } else {
+      showAlert('Error', result.message);
+    }
   };
 
   const { width, height } = useWindowDimensions();
@@ -99,14 +110,18 @@ export default function LoginScreen() {
                maxLength={10}
                value={mobile}
                onChangeText={setMobile}
+               editable={!loading}
              />
            </View>
 
            <TouchableOpacity
-             style={styles.button}
+             style={[styles.button, loading && styles.buttonDisabled]}
              onPress={validateMobile}
+             disabled={loading}
            >
-             <Text style={styles.buttonText}>Get OTP</Text>
+             <Text style={styles.buttonText}>
+               {loading ? 'Please wait...' : 'Get OTP'}
+             </Text>
            </TouchableOpacity>
 
            <Text style={styles.footer}>
@@ -214,6 +229,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 16,
+  },
+
+  buttonDisabled: {
+    opacity: 0.6,
   },
 
   buttonText: {
