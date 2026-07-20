@@ -14,10 +14,13 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import AlertModal from '@/components/ui/modals/AlertModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { subscribeUser } from '@/components/services/acmApi';
 
 export default function LoginScreen() {
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const [timer, setTimer] = useState(0);
   const [isResendDisabled, setIsResendDisabled] = useState(false);
@@ -41,7 +44,7 @@ export default function LoginScreen() {
   };
 
   //logic of validation
-  const validateOTP = () => {
+  const validateOTP = async () => {
 
     if (mobile.trim() === '') {
       showAlert('Error', 'Please enter mobile number');
@@ -63,7 +66,17 @@ export default function LoginScreen() {
       return;
     }
 
-    router.push('/main');
+    // ab yaha se Subscribe API call karenge
+    setLoading(true);
+    const result = await subscribeUser(mobile.trim());
+    setLoading(false);
+
+    if (result.success && result.maskedMsisdn) {
+      await AsyncStorage.setItem('maskedMsisdn', result.maskedMsisdn);
+      router.push('/main');
+    } else {
+      showAlert('Error', result.message);
+    }
 
   };
 
@@ -156,6 +169,7 @@ export default function LoginScreen() {
                   maxLength={10}
                   value={mobile}
                   onChangeText={setMobile}
+                  editable={!loading}
                 />
               </View>
 
@@ -168,15 +182,19 @@ export default function LoginScreen() {
                   maxLength={5}
                   value={otp}
                   onChangeText={setOtp}
+                  editable={!loading}
                 />
               </View>
 
              <TouchableOpacity
-               style={styles.button}
+               style={[styles.button, loading && { opacity: 0.6 }]}
                onPress={validateOTP}
+               disabled={loading}
              >
 
-               <Text style={styles.buttonText}>Validate</Text>
+               <Text style={styles.buttonText}>
+                 {loading ? 'Please wait...' : 'Validate'}
+               </Text>
              </TouchableOpacity>
 
              <TouchableOpacity

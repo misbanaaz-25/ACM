@@ -19,6 +19,8 @@ import PlusIcon from '@/components/ui/Icon/customprofile';
 import CricketIcon from '@/components/ui/Icon/cricketicon';
 import PrayerIcon from '@/components/ui/Icon/prayericon';
 import SmallTimer from '@/components/ui/modals/smalltimer';
+import AlertModal from '@/components/ui/modals/AlertModal';
+import { changeActiveProfile } from '@/components/services/acmApi';
 
 
 type Props = {
@@ -39,6 +41,19 @@ export default function ManageProfileGrid({
 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showSmallTimer, setShowSmallTimer] = useState(false);
+
+  // ab track karna padega kaunsa profile select hua hai
+  const [selectedProfile, setSelectedProfile] = useState('');
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
 
     const manageProfileItems = [
@@ -124,10 +139,29 @@ export default function ManageProfileGrid({
       return;
     }
 
+    // yaha profile ka naam save kar rahe hain, taaki submit ke time API ko bhej sake
+    setSelectedProfile(label);
+
     if (activeTab === 'manage') {
       setShowSmallTimer(true);
     } else {
       setShowScheduleModal(true);
+    }
+  };
+
+  // SmallTimer se hour/minute aata hai, usse duration string banate hain API ke liye
+  const handleSmallTimerSubmit = async (hour: number, minute: number) => {
+    setShowSmallTimer(false);
+
+    // duration minutes mein bhej rahe hain total
+    const totalMinutes = hour * 60 + minute;
+
+    const result = await changeActiveProfile(selectedProfile, String(totalMinutes));
+
+    if (result.success) {
+      showAlert('Success', result.message);
+    } else {
+      showAlert('Error', result.message);
     }
   };
 
@@ -146,7 +180,7 @@ export default function ManageProfileGrid({
                 { backgroundColor: colors.secondary },
                 item.active && { backgroundColor: colors.primary },
               ]}
-            >
+              >
               {item.icon}
             </View>
             <Text style={[styles.gridLabel, { color: colors.text }]}>{item.label}</Text>
@@ -163,10 +197,7 @@ export default function ManageProfileGrid({
       <SmallTimer
         visible={showSmallTimer}
         onClose={() => setShowSmallTimer(false)}
-        onSubmit={(hour, minute) => {
-          setShowSmallTimer(false);
-          console.log('Manage Profile time:', hour, minute);
-        }}
+        onSubmit={handleSmallTimerSubmit}
         onStart={(hour, minute) => {
           console.log('Timer started:', hour, minute);
         }}
@@ -177,6 +208,13 @@ export default function ManageProfileGrid({
         onClose={() => setShowScheduleModal(false)}
         onSaveDate={(date) => console.log('Date saved:', date)}
         onSubmitTime={(data) => console.log('Time submitted:', data)}
+      />
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
       />
 
       {/* Schedule Profile tab → pehle choice popup (Set Date / Set Time) */}

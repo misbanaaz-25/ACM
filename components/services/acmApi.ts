@@ -1,6 +1,10 @@
 // ACM ka API service - yaha saare backend calls honge
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const SCL_BASE_URL = 'https://acm.mcarbon.com/ACM_APP_3.4/SclClient';
+const SUBSCRIBE_URL = 'https://acm.mcarbon.com/ACMService/thirdparty/v1/Subscribe';
+const CHANGE_PROFILE_URL = 'https://acm.mcarbon.com/ACMService/thirdparty/v1/ChangeActiveProfile';
 
 // har request ko unique TID chahiye hota hai, isliye time se generate kar rahe hain
 function generateTid(): string {
@@ -68,6 +72,112 @@ export async function sendOtp(mobile: string): Promise<SendOtpResult> {
     };
   } catch (error) {
     console.log('sendOtp error:', error);
+    return {
+      success: false,
+      message: 'Network error, please check your internet and try again',
+    };
+  }
+}
+
+export interface SubscribeResult {
+  success: boolean;
+  message: string;
+  maskedMsisdn?: string;
+}
+
+export async function subscribeUser(mobile: string): Promise<SubscribeResult> {
+  const tid = generateTid();
+
+  try {
+    const response = await fetch(SUBSCRIBE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Msisdn': mobile,
+        'Circle': 'UW',
+        'Authorization': 'AcmThanksApp',
+      },
+      body: JSON.stringify({
+        tid: tid,
+        os: 'Android|11.0.1',
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.statusCode === 200 && data.maskedMsisdn) {
+      return {
+        success: true,
+        message: data.msg || 'Subscribed successfully',
+        maskedMsisdn: data.maskedMsisdn,
+      };
+    }
+
+    return {
+      success: false,
+      message: data.msg || 'Subscription failed, please try again',
+    };
+  } catch (error) {
+    console.log('subscribeUser error:', error);
+    return {
+      success: false,
+      message: 'Network error, please check your internet and try again',
+    };
+  }
+}
+
+export interface ChangeProfileResult {
+  success: boolean;
+  message: string;
+}
+
+export async function changeActiveProfile(
+  profileName: string,
+  duration: string
+): Promise<ChangeProfileResult> {
+  // pehle saved maskedMsisdn nikalna hoga, jo subscribe ke time save hua tha
+  const maskedMsisdn = await AsyncStorage.getItem('maskedMsisdn');
+
+  if (!maskedMsisdn) {
+    return {
+      success: false,
+      message: 'Please subscribe first before activating a profile',
+    };
+  }
+
+  const tid = generateTid();
+
+  try {
+    const response = await fetch(CHANGE_PROFILE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'maskedMsisdn': maskedMsisdn,
+        'Authorization': 'AcmThanksApp',
+      },
+      body: JSON.stringify({
+        tid: tid,
+        os: 'Android|11.0.1',
+        name: profileName,
+        duration: duration,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.statusCode === 200) {
+      return {
+        success: true,
+        message: data.msg || 'Profile activated successfully',
+      };
+    }
+
+    return {
+      success: false,
+      message: data.msg || 'Could not activate profile, please try again',
+    };
+  } catch (error) {
+    console.log('changeActiveProfile error:', error);
     return {
       success: false,
       message: 'Network error, please check your internet and try again',
