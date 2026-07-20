@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Modal,
   View,
@@ -12,6 +13,7 @@ type AlertModalProps = {
   title: string;
   message: string;
   onClose: () => void;
+  illustration?: React.ReactNode; // optional - jab pass hoga tabhi dikhega
 };
 
 export default function AlertModal({
@@ -19,6 +21,7 @@ export default function AlertModal({
   title,
   message,
   onClose,
+  illustration,
 }: AlertModalProps) {
   return (
     <Modal
@@ -29,6 +32,12 @@ export default function AlertModal({
     >
       <View style={styles.overlay}>
         <View style={styles.card}>
+          {illustration && (
+            <View style={styles.illustrationBox}>
+              {illustration}
+            </View>
+          )}
+
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
 
@@ -58,6 +67,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
   },
+  illustrationBox: {
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     fontSize: 17,
     fontWeight: '700',
@@ -66,7 +80,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   message: {
-      width:'100%',
+    width: '100%',
     fontSize: 14,
     color: Colors.light.text,
     opacity: 0.7,
@@ -86,4 +100,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Colors } from '@/constants/theme';
 import AlertModal from '@/components/ui/modals/AlertModal';
+import DurationErrorIllustration from '@/components/ui/Icon/DurationErrorIllustration';
 
 interface SmallTimerProps {
   visible: boolean;
@@ -20,6 +21,7 @@ interface SmallTimerProps {
 
 const MAX_HOUR = 11;
 const MAX_MINUTE = 59;
+const MIN_DURATION_MINUTES = 5; // yaha se easily change kar sakte ho future mein
 
 export default function SmallTimer({
   visible,
@@ -40,7 +42,6 @@ export default function SmallTimer({
   }, [visible, initialHour, initialMinute]);
 
   const [alertVisible, setAlertVisible] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
 
   // Hour stepper
   const incrementHour = () => {
@@ -58,20 +59,20 @@ export default function SmallTimer({
     setMinute((prev) => (prev > 0 ? prev - 1 : MAX_MINUTE));
   };
 
+  // total duration minutes mein nikal liya check karne ke liye
+  const totalMinutes = hour * 60 + minute;
+
   const handlePlay = () => {
-    if (hour === 0 && minute === 0) {
-      setAlertMessage('Please set a valid duration before starting.');
+    if (totalMinutes < MIN_DURATION_MINUTES) {
       setAlertVisible(true);
       return;
     }
-
     onStart(hour, minute);
     onClose();
   };
 
   const handleSubmit = () => {
-    if (hour === 0 && minute === 0) {
-      setAlertMessage('Please set a valid duration before submitting.');
+    if (totalMinutes < MIN_DURATION_MINUTES) {
       setAlertVisible(true);
       return;
     }
@@ -143,8 +144,10 @@ export default function SmallTimer({
 
       <AlertModal
         visible={alertVisible}
-        message={alertMessage}
+        title="Error!"
+        message={`Minimum duration of a profile should be ${MIN_DURATION_MINUTES} minutes.`}
         onClose={() => setAlertVisible(false)}
+        illustration={<DurationErrorIllustration width={140} height={140} />}
       />
     </>
   );
@@ -189,8 +192,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-
-    width:'100%',
+    width: '100%',
     fontSize: 13,
     color: Colors.light.textSecondary,
     marginBottom: 4,
@@ -207,7 +209,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   note: {
-     width:'100%',
+    width: '100%',
     fontSize: 12,
     color: Colors.light.textSecondary,
     marginBottom: 20,
