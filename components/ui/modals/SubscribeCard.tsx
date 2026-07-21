@@ -1,11 +1,57 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Colors } from '@/constants/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { subscribeUser } from '@/components/services/acmApi';
+import AlertModal from '@/components/ui/modals/AlertModal';
 
 // Subscribe card + welcome modal - main.tsx se yahi cheez hata ke yaha dala hai
 export default function SubscribeCard({ cardWidth, onSubscribe }) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [loading, setLoading] = useState(false);
   const colors = Colors.light;
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
+  // Subscribe button dabate hi seedha welcome modal khul jata hai (jaisa pehle tha)
+  const handleSubscribePress = () => {
+    setShowWelcomeModal(true);
+  };
+
+  // "Okay" dabane pe ab real Subscribe API call hogi
+  const handleOkayPress = async () => {
+    setLoading(true);
+
+    const mobile = await AsyncStorage.getItem('mobileNumber');
+
+    if (!mobile) {
+      setLoading(false);
+      setShowWelcomeModal(false);
+      showAlert('Error', 'Mobile number not found, please login again');
+      return;
+    }
+
+    const result = await subscribeUser(mobile);
+    setLoading(false);
+
+    if (result.success && result.maskedMsisdn) {
+      await AsyncStorage.setItem('maskedMsisdn', result.maskedMsisdn);
+      setShowWelcomeModal(false);
+      // ye parent ko batayega ki user subscribe ho gaya
+      onSubscribe();
+    } else {
+      setShowWelcomeModal(false);
+      showAlert('Error', result.message);
+    }
+  };
 
   return (
     <>
@@ -17,7 +63,7 @@ export default function SubscribeCard({ cardWidth, onSubscribe }) {
 
         <TouchableOpacity
           style={[styles.subscribeButton, { backgroundColor: colors.primary }]}
-          onPress={() => setShowWelcomeModal(true)}
+          onPress={handleSubscribePress}
         >
           <Text style={[styles.subscribeButtonText, { color: colors.white }]}>Subscribe</Text>
         </TouchableOpacity>
@@ -36,18 +82,24 @@ export default function SubscribeCard({ cardWidth, onSubscribe }) {
               Hello!{'\n'}As a privileged Airtel customer you have been granted free access to Airtel Call Manager services.
             </Text>
             <TouchableOpacity
-              style={[styles.modalBtn, { backgroundColor: colors.primary }]}
-              onPress={() => {
-                setShowWelcomeModal(false);
-                // ye modal band hote hi parent ko batayega ki user subscribe ho gaya
-                onSubscribe();
-              }}
+              style={[styles.modalBtn, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]}
+              onPress={handleOkayPress}
+              disabled={loading}
             >
-              <Text style={[styles.modalBtnText, { color: colors.white }]}>Okay</Text>
+              <Text style={[styles.modalBtnText, { color: colors.white }]}>
+                {loading ? 'Please wait...' : 'Okay'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </>
   );
 }

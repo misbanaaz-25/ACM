@@ -303,7 +303,7 @@ export default function RecordingModal({ visible, onClose }: Props) {
           {recordingState === 'idle' && (
             <View style={styles.idleWrapper}>
               <TouchableOpacity style={styles.micBtn} onPress={startRecording}>
-                <Feather name="mic" size={28} color="#fff" />
+                <Feather name="mic" size={18} color="#fff" />
               </TouchableOpacity>
               <Text style={styles.micText}>
                 Tap on the microphone to start recording personalized voice message
@@ -422,27 +422,30 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
 
+  // idle state ab row layout mein hai - chhota mic left side, text uske right mein
+  // pehle ye centered column tha (bada mic upar, text niche), pic ke hisab se change kiya
   idleWrapper: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
+    marginVertical: 15,
+    paddingHorizontal: 5,
   },
 
   micBtn: {
     backgroundColor: Colors.light.primary,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginRight: 12,
   },
 
   micText: {
+    flex: 1,
     color: Colors.light.textSecondary,
     fontSize: 13,
-    textAlign: 'center',
-    paddingHorizontal: 20,
+    textAlign: 'left',
   },
 
   waveformContainer: {

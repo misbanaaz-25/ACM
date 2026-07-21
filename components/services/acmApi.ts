@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SCL_BASE_URL = 'https://acm.mcarbon.com/ACM_APP_3.4/SclClient';
 const SUBSCRIBE_URL = 'https://acm.mcarbon.com/ACMService/thirdparty/v1/Subscribe';
 const CHANGE_PROFILE_URL = 'https://acm.mcarbon.com/ACMService/thirdparty/v1/ChangeActiveProfile';
+const ENCODE_MSISDN_URL = 'https://acm.mcarbon.com/ACMService/encode';
+const OTP_CNF_URL = SCL_BASE_URL;
 
 // har request ko unique TID chahiye hota hai, isliye time se generate kar rahe hain
 function generateTid(): string {
@@ -131,6 +133,12 @@ export interface ChangeProfileResult {
   message: string;
 }
 
+export interface EncodeMsisdnResult {
+  success: boolean;
+  message: string;
+  encodedMsisdn?: string;
+}
+
 export async function changeActiveProfile(
   profileName: string,
   duration: string
@@ -182,5 +190,87 @@ export async function changeActiveProfile(
       success: false,
       message: 'Network error, please check your internet and try again',
     };
+  }
+}
+
+export async function encodeMsisdn(
+  mobile: string
+): Promise<EncodeMsisdnResult> {
+  try {
+    const response = await fetch(ENCODE_MSISDN_URL, {
+      method: 'GET',
+      headers: {
+        msisdn: mobile,
+      },
+    });
+
+    const encodedValue = await response.text();
+
+    if (response.ok) {
+      return {
+        success: true,
+        message: 'MSISDN encoded successfully',
+        encodedMsisdn: encodedValue,
+      };
+    }
+
+    return {
+      success: false,
+      message: 'Encoding failed',
+    };
+  } catch (error) {
+    console.log('encodeMsisdn error:', error);
+
+    return {
+      success: false,
+      message: 'Network error',
+    };
+  }
+}
+
+export interface VerifyOtpResult {
+  success: boolean;
+  message: string;
+}
+
+export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpResult> {
+  const tid = generateTid();
+
+  const xmlBody = `<?xml version="1.0" encoding="ISO-8859-1"?>
+<SCL>
+    <MSG>OTP_CNF</MSG>
+    <MSISDN>${mobile}</MSISDN>
+    <OS>AN|35</OS>
+    <AUTHKEY>12345</AUTHKEY>
+    <OTP>${otp}</OTP>
+    <TID>${tid}</TID>
+    <APP_VER>3.4.0</APP_VER>
+</SCL>`;
+
+  try {
+    const response = await fetch(OTP_CNF_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=ISO-8859-1',
+      },
+      body: xmlBody,
+    });
+
+    const responseText = await response.text();
+
+    const resultMatch = responseText.match(/<RESULT>(.*?)<\/RESULT>/);
+    const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
+
+    const result = resultMatch ? resultMatch[1] : '';
+    const disMsg = disMsgMatch ? disMsgMatch[1] : 'Something went wrong, please try again';
+
+    if (result === 'FAIL') {
+      return { success: false, message: disMsg };
+    }
+
+    return { success: true, message: disMsg };
+  } catch (error) {
+    console.log('verifyOtp error:', error);
+    return { success: false, message: 'Network error, please check your internet and try again' };
   }
 }

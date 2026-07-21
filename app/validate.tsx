@@ -15,9 +15,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import AlertModal from '@/components/ui/modals/AlertModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { subscribeUser } from '@/components/services/acmApi';
+import { sendOtp, encodeMsisdn, verifyOtp} from '@/components/services/acmApi';
+import { Colors } from '@/constants/theme';
 
 export default function LoginScreen() {
+  const colors = Colors.light;
+
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,60 +46,85 @@ export default function LoginScreen() {
     setAlertVisible(true);
   };
 
-  //logic of validation
-  const validateOTP = async () => {
+//logic of validation
+const validateOTP = async () => {
 
-    if (mobile.trim() === '') {
-      showAlert('Error', 'Please enter mobile number');
-      return;
-    }
+  // pehle saari local validations - koi bhi fail ho toh yahi rukna hai, API call nahi honi chahiye
+  if (mobile.trim() === '') {
+    showAlert('Error', 'Please enter mobile number');
+    return;
+  }
 
-    if (mobile.length !== 10) {
-      showAlert('Error', 'Mobile number must be 10 digits');
-      return;
-    }
+  if (mobile.length !== 10) {
+    showAlert('Error', 'Mobile number must be 10 digits');
+    return;
+  }
 
-    if (otp.trim() === '') {
-      showAlert('Error', 'Please enter OTP');
-      return;
-    }
+  if (otp.trim() === '') {
+    showAlert('Error', 'Please enter OTP');
+    return;
+  }
 
-    if (otp.length !== 5) {
-      showAlert('Error', 'OTP must be 5 digits');
-      return;
-    }
+  if (otp.length !== 4) {
+    showAlert('Error', 'OTP must be 4 digits');
+    return;
+  }
 
-    // ab yaha se Subscribe API call karenge
-    setLoading(true);
-    const result = await subscribeUser(mobile.trim());
+  setLoading(true);
+
+  // step 1: pehle OTP ko server se verify karo
+  const otpResult = await verifyOtp(mobile.trim(), otp.trim());
+
+  if (!otpResult.success) {
     setLoading(false);
+    showAlert('Error', otpResult.message);
+    return;
+  }
 
-    if (result.success && result.maskedMsisdn) {
-      await AsyncStorage.setItem('maskedMsisdn', result.maskedMsisdn);
-      router.push('/main');
-    } else {
-      showAlert('Error', result.message);
-    }
+  // step 2: OTP sahi tha, ab mobile number ko encode karo
+  const result = await encodeMsisdn(mobile.trim());
 
-  };
+  if (!result.success) {
+    setLoading(false);
+    showAlert('Error', result.message);
+    return;
+  }
 
- const handleResendOTP = () => {
+  console.log('Encoded MSISDN:', result.encodedMsisdn);
 
-   if (mobile.trim() === '') {
-     showAlert('Error','Please enter mobile number');
-     return;
-   }
+  // mobile number save kar rahe hain taaki baad me subscribe ke time use ho sake
+  await AsyncStorage.setItem('mobileNumber', mobile.trim());
+  setLoading(false);
 
-   if (mobile.length !== 10) {
-     showAlert('Error', 'Mobile number must be 10 digits');
-     return;
-   }
+  router.push('/main');
+};
 
-   setIsResendDisabled(true);
-   setTimer(30);
+const handleResendOTP = async () => {
 
-   // Future API Call
- };
+  if (mobile.trim() === '') {
+    showAlert('Error','Please enter mobile number');
+    return;
+  }
+
+  if (mobile.length !== 10) {
+    showAlert('Error', 'Mobile number must be 10 digits');
+    return;
+  }
+
+  setIsResendDisabled(true);
+  setTimer(30);
+
+  setLoading(true);
+
+  const result = await sendOtp(mobile.trim());
+
+  setLoading(false);
+
+  if (!result.success) {
+    showAlert('Error', result.message);
+    return;
+  }
+};
 
  useEffect(() => {
    let interval: ReturnType<typeof setInterval>;
@@ -121,9 +149,9 @@ export default function LoginScreen() {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFE8E8" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.secondary} />
       <LinearGradient
-        colors={['#FFE8E8', '#FFFFFF']}
+        colors={[colors.secondary, colors.background]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={{ flex: 1 }}
@@ -134,7 +162,7 @@ export default function LoginScreen() {
         >
 
             <View style={styles.container}>
-            <Text style={styles.title}>Login</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Login</Text>
 
             <View
               style={[
@@ -142,25 +170,28 @@ export default function LoginScreen() {
                 {
                   width: width > 500 ? 420 : width * 0.9,
                   paddingVertical: isLandscape ? 12 : 20,
+                  backgroundColor: colors.white,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.subtitle,
+                  { color: colors.text },
                   isLandscape && { marginBottom: 10 },
                 ]}
               >
                 Please enter OTP you have recieved on your registered mobile no.
               </Text>
 
-              <View style={styles.inputRow}>
-                <View style={styles.countryCode}>
-                  <Text style={styles.countryText}>+91</Text>
+              <View style={[styles.inputRow, { borderColor: colors.border }]}>
+                <View style={[styles.countryCode, { backgroundColor: colors.secondary, borderRightColor: colors.border }]}>
+                  <Text style={[styles.countryText, { color: colors.text }]}>+91</Text>
                 </View>
                 <TextInput
                   style={[
                     styles.input,
+                    { color: colors.text },
                     isLandscape && { height: 40 },
                   ]}
                   placeholder="xxxxxxxxxx"
@@ -173,13 +204,13 @@ export default function LoginScreen() {
                 />
               </View>
 
-              <View style={styles.inputRow}>
+              <View style={[styles.inputRow, { borderColor: colors.border }]}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text }]}
                   placeholder=" Enter OTP"
                   placeholderTextColor="#aaa"
                   keyboardType="phone-pad"
-                  maxLength={5}
+                  maxLength={4}
                   value={otp}
                   onChangeText={setOtp}
                   editable={!loading}
@@ -187,7 +218,7 @@ export default function LoginScreen() {
               </View>
 
              <TouchableOpacity
-               style={[styles.button, loading && { opacity: 0.6 }]}
+               style={[styles.button, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]}
                onPress={validateOTP}
                disabled={loading}
              >
@@ -200,24 +231,25 @@ export default function LoginScreen() {
              <TouchableOpacity
                 style={[
                   styles.button1,
+                  { borderColor: colors.primary },
                   isLandscape && { marginBottom: 8 },
                   isResendDisabled && { opacity: 0.6 },
                 ]}
                 disabled={isResendDisabled}
                 onPress={handleResendOTP}
               >
-                <Text style={styles.buttonText1}>
+                <Text style={[styles.buttonText1, { color: colors.primary }]}>
                   {isResendDisabled
                     ? `Resend OTP (${timer}s)`
                     : 'Resend OTP'}
                 </Text>
               </TouchableOpacity>
 
-              <Text style={styles.footer}>
+              <Text style={[styles.footer, { color: colors.text }]}>
                 Please read our{' '}
-                <Text style={styles.link}>term of uses</Text>{' '}
+                <Text style={[styles.link, { color: colors.primary }]}>term of uses</Text>{' '}
                 and{' '}
-                <Text style={styles.link}>privacy policy</Text>.
+                <Text style={[styles.link, { color: colors.primary }]}>privacy policy</Text>.
               </Text>
             </View>
          </View>
@@ -246,10 +278,8 @@ const styles = StyleSheet.create({
    left: 20,
    fontSize: 22,
    fontWeight: '700',
-   color: '#000',
  },
 card: {
-  backgroundColor: '#fff',
   borderRadius: 16,
   padding: 20,
   width: '100%',
@@ -259,39 +289,32 @@ card: {
 },
  subtitle: {
    fontSize: 13,
-   color: '#333',
    marginBottom: 18,
    lineHeight: 20,
  },
   inputRow: {
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 16,
   },
   countryCode: {
-    backgroundColor: '#f5f5f5',
     paddingHorizontal: 12,
     justifyContent: 'center',
     borderRightWidth: 1,
-    borderRightColor: '#ddd',
   },
   countryText: {
     fontSize: 14,
-    color: '#333',
     fontWeight: '600',
   },
   input: {
     flex: 1,
     paddingHorizontal: 12,
     fontSize: 14,
-    color: '#000',
     height: 48,
   },
   button: {
-    backgroundColor: '#D40000',
     borderRadius: 99,
     paddingVertical: 14,
     alignItems: 'center',
@@ -305,24 +328,20 @@ card: {
   button1: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#D40000',
     borderRadius: 99,
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 16,
   },
   buttonText1: {
-    color: '#D40000',
     fontSize: 16,
     fontWeight: 'bold',
   },
   footer: {
     fontSize: 12,
-    color: '#555',
     textAlign: 'center',
   },
   link: {
-    color: '#D40000',
     textDecorationLine: 'underline',
     fontWeight: '400',
   },
