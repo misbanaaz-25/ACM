@@ -49,7 +49,7 @@ export default function LoginScreen() {
       return;
     }
 
-    // ab yaha se OTP API call karenge
+    // API calling.....
     setLoading(true);
     const result = await sendOtp(mobile.trim());
     setLoading(false);

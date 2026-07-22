@@ -76,7 +76,7 @@ const validateOTP = async () => {
   const otpResult = await verifyOtp(mobile.trim(), otp.trim());
 
   if (!otpResult.success) {
-    setLoading(false);
+    setLoading(false);2
     showAlert('Error', otpResult.message);
     return;
   }

@@ -41,6 +41,8 @@ export async function sendOtp(mobile: string): Promise<SendOtpResult> {
     <APP_VER>3.4.0</APP_VER>
 </SCL>`;
 
+  console.log('[sendOtp] REQUEST ->', { url: SCL_BASE_URL, mobile, tid, xmlBody });
+
   try {
     const response = await fetch(SCL_BASE_URL, {
       method: 'POST',
@@ -51,6 +53,8 @@ export async function sendOtp(mobile: string): Promise<SendOtpResult> {
     });
 
     const responseText = await response.text();
+
+    console.log('[sendOtp] RESPONSE <-', { status: response.status, responseText });
 
     // response XML mein aata hai, regex se values nikal rahe hain
     const statusMatch = responseText.match(/<STATUS>(.*?)<\/STATUS>/);
@@ -90,6 +94,17 @@ export interface SubscribeResult {
 export async function subscribeUser(mobile: string): Promise<SubscribeResult> {
   const tid = generateTid();
 
+  const requestBody = {
+    tid: tid,
+    os: 'Android|11.0.1',
+  };
+
+  console.log('[subscribeUser] REQUEST ->', {
+    url: SUBSCRIBE_URL,
+    headers: { Msisdn: mobile, Circle: 'UW' },
+    body: requestBody,
+  });
+
   try {
     const response = await fetch(SUBSCRIBE_URL, {
       method: 'POST',
@@ -99,13 +114,12 @@ export async function subscribeUser(mobile: string): Promise<SubscribeResult> {
         'Circle': 'UW',
         'Authorization': 'AcmThanksApp',
       },
-      body: JSON.stringify({
-        tid: tid,
-        os: 'Android|11.0.1',
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const data = await response.json();
+
+    console.log('[subscribeUser] RESPONSE <-', { status: response.status, data });
 
     if (data.statusCode === 200 && data.maskedMsisdn) {
       return {
@@ -147,6 +161,7 @@ export async function changeActiveProfile(
   const maskedMsisdn = await AsyncStorage.getItem('maskedMsisdn');
 
   if (!maskedMsisdn) {
+    console.log('[changeActiveProfile] BLOCKED -> no maskedMsisdn found in AsyncStorage');
     return {
       success: false,
       message: 'Please subscribe first before activating a profile',
@@ -154,6 +169,19 @@ export async function changeActiveProfile(
   }
 
   const tid = generateTid();
+
+  const requestBody = {
+    tid: tid,
+    os: 'Android|11.0.1',
+    name: profileName,
+    duration: duration,
+  };
+
+  console.log('[changeActiveProfile] REQUEST ->', {
+    url: CHANGE_PROFILE_URL,
+    headers: { maskedMsisdn },
+    body: requestBody,
+  });
 
   try {
     const response = await fetch(CHANGE_PROFILE_URL, {
@@ -163,15 +191,12 @@ export async function changeActiveProfile(
         'maskedMsisdn': maskedMsisdn,
         'Authorization': 'AcmThanksApp',
       },
-      body: JSON.stringify({
-        tid: tid,
-        os: 'Android|11.0.1',
-        name: profileName,
-        duration: duration,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const data = await response.json();
+
+    console.log('[changeActiveProfile] RESPONSE <-', { status: response.status, data });
 
     if (data.statusCode === 200) {
       return {
@@ -196,6 +221,8 @@ export async function changeActiveProfile(
 export async function encodeMsisdn(
   mobile: string
 ): Promise<EncodeMsisdnResult> {
+  console.log('[encodeMsisdn] REQUEST ->', { url: ENCODE_MSISDN_URL, mobile });
+
   try {
     const response = await fetch(ENCODE_MSISDN_URL, {
       method: 'GET',
@@ -205,6 +232,8 @@ export async function encodeMsisdn(
     });
 
     const encodedValue = await response.text();
+
+    console.log('[encodeMsisdn] RESPONSE <-', { status: response.status, encodedValue });
 
     if (response.ok) {
       return {
@@ -247,6 +276,8 @@ export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpR
     <APP_VER>3.4.0</APP_VER>
 </SCL>`;
 
+  console.log('[verifyOtp] REQUEST ->', { url: OTP_CNF_URL, mobile, otp, tid, xmlBody });
+
   try {
     const response = await fetch(OTP_CNF_URL, {
       method: 'POST',
@@ -257,6 +288,8 @@ export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpR
     });
 
     const responseText = await response.text();
+
+    console.log('[verifyOtp] RESPONSE <-', { status: response.status, responseText });
 
     const resultMatch = responseText.match(/<RESULT>(.*?)<\/RESULT>/);
     const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
