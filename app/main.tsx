@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import RecordingModal from '@/components/ui/modals/recording';
 import AdvanceBlacklistContent from '@/components/ui/modals/advanceblacklist';
 import WhitelistModal from '@/components/ui/modals/whitelist';
@@ -21,6 +22,7 @@ import ManageProfileGrid from '@/components/ui/modals/ManageProfileGrid';
 import BottomBar from '@/components/ui/modals/BottomBar';
 import SubscribeCard from '@/components/ui/modals/SubscribeCard';
 import AlertModal from '@/components/ui/modals/AlertModal';
+import DashboardCard from '@/components/ui/modals/DashboardCard';
 
 
 export default function HomeScreen() {
@@ -39,6 +41,9 @@ export default function HomeScreen() {
   // grid, whitelist, blacklist all three are locked before subscribe
   const [isSubscribed, setIsSubscribed] = useState(false);
 
+  // dashboard pe dikhne wala current active profile
+  const [activeProfile, setActiveProfile] = useState('No profile');
+
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
@@ -48,6 +53,15 @@ export default function HomeScreen() {
     setAlertMessage(message);
     setAlertVisible(true);
   };
+
+  // screen open hote hi AsyncStorage se pichla saved profile load karo
+  useEffect(() => {
+    const loadProfile = async () => {
+      const saved = await AsyncStorage.getItem('activeProfile');
+      if (saved) setActiveProfile(saved);
+    };
+    loadProfile();
+  }, []);
 
   // if not subscribed show alert !
   const requireSubscription = (action: () => void) => {
@@ -104,53 +118,8 @@ export default function HomeScreen() {
             />
           )}
 
-          {/*------ Dashboard card------ */}
-          <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Dashboard</Text>
-
-            <View style={[styles.timerBox, { borderColor: colors.border }]}>
-              <Text style={[styles.timerText, { color: colors.text }]}>00 hr: 00 min: 00 sec</Text>
-              <Text style={[styles.timerLabel, { color: colors.text }]}>My Profile</Text>
-              <Text style={[styles.timerValue, { color: colors.text }]}>No profile</Text>
-            </View>
-
-            <View style={styles.statRow}>
-              <TouchableOpacity
-                style={[styles.statBox, { borderColor: colors.border }]}
-                onPress={() => router.push('/ScheduleProfile')}
-              >
-                <Text style={[styles.statTitle, { color: colors.text }]}>No Profile</Text>
-                <View style={styles.statLinkRow}>
-                  <Text style={[styles.statLink, { color: colors.primary }]}>Schedule Profile</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.primary} style={{ marginLeft: -23 }} />
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.statBox, { borderColor: colors.border }]}
-                onPress={() => router.push('/Blocked_contact')}
-              >
-                <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
-                <View style={styles.statLinkRow}>
-                  <Text style={[styles.statLink, { color: colors.primary }]}>Blacklist</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.statBox, { borderColor: colors.border }]}
-                onPress={() => router.push('/Whitelist_contact')}
-              >
-                <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
-                <View style={styles.statLinkRow}>
-                  <Text style={[styles.statLink, { color: colors.primary }]}>
-                    Whitelist
-                  </Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
+          {/* Dashboard card - ab separate file mein hai */}
+          <DashboardCard cardWidth={cardWidth} activeProfile={activeProfile} />
 
              {/* Manage / Schedule Profile card */}
           <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>
@@ -188,6 +157,7 @@ export default function HomeScreen() {
               onCustomProfilePress={() => setShowRecordingModal(true)}
               isSubscribed={isSubscribed}
               onRequireSubscription={showSubscribeAlert}
+              onProfileChange={setActiveProfile}
             />
           </View>
 
@@ -337,59 +307,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  timerBox: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 12,
-  },
-  timerText: {
-    fontSize: 13,
-  },
-  timerLabel: {
-    fontSize: 12,
-    marginTop: 8,
-  },
-  timerValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  statBox: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-  },
-  statTitle: {
-    fontSize: 12,
-  },
-  statNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  statLinkRow: {
-     flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 6,
-      justifyContent: 'flex-start'
-  },
-  statLink: {
-      flexShrink:0,
-     fontSize: 12,
-      fontWeight: '600',
-      marginRight: 2,
   },
   tabRow: {
      flexDirection: 'row',

@@ -307,3 +307,64 @@ export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpR
     return { success: false, message: 'Network error, please check your internet and try again' };
   }
 }
+
+//------change active profile new---
+export interface ChangeProfileSclResult {
+  success: boolean;
+  message: string;
+}
+
+export async function changeActiveProfileScl(
+  encodedMsisdn: string,
+  profileType: string
+): Promise<ChangeProfileSclResult> {
+  const tid = generateTid();
+
+  const xmlBody = `<?xml version="1.0" encoding="ISO-8859-1"?>
+<SCL>
+    <MESSAGETYPE>CHANGE_ACTIVE_PROFILE_REQ</MESSAGETYPE>
+    <MSISDN>${encodedMsisdn}</MSISDN>
+    <PROFILETYPE>${profileType}</PROFILETYPE>
+    <APP_VER>3.4</APP_VER>
+    <TIME></TIME>
+    <ACTIVELISTTYPE>WHITE</ACTIVELISTTYPE>
+    <TRANSACTION_ID>${tid}</TRANSACTION_ID>
+    <AUTHKEY>12345</AUTHKEY>
+    <LANGUAGE>ENGLISH</LANGUAGE>
+    <KEYWORD>ACM_APP</KEYWORD>
+    <RESULT_REQ>YES</RESULT_REQ>
+    <OS>AN|35</OS>
+</SCL>`;
+
+  console.log('[changeActiveProfileScl] REQUEST ->', { url: SCL_BASE_URL, encodedMsisdn, profileType, tid, xmlBody });
+
+  try {
+    const response = await fetch(SCL_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=ISO-8859-1',
+      },
+      body: xmlBody,
+    });
+
+    const responseText = await response.text();
+
+    console.log('[changeActiveProfileScl] RESPONSE <-', { status: response.status, responseText });
+
+    // server yahan RESULT/DISMSG nahi, MSG aur REQ_RESULT tags bhejta hai
+    const msgMatch = responseText.match(/<MSG>(.*?)<\/MSG>/);
+    const reqResultMatch = responseText.match(/<REQ_RESULT>(.*?)<\/REQ_RESULT>/);
+
+    const msg = msgMatch ? msgMatch[1] : 'Something went wrong, please try again';
+    const reqResult = reqResultMatch ? reqResultMatch[1] : '';
+
+    if (reqResult === 'SUCC') {
+      return { success: true, message: msg };
+    }
+
+    return { success: false, message: msg };
+  } catch (error) {
+    console.log('changeActiveProfileScl error:', error);
+    return { success: false, message: 'Network error, please check your internet and try again' };
+  }
+}

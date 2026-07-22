@@ -20,7 +20,8 @@ import CricketIcon from '@/components/ui/Icon/cricketicon';
 import PrayerIcon from '@/components/ui/Icon/prayericon';
 import SmallTimer from '@/components/ui/modals/smalltimer';
 import AlertModal from '@/components/ui/modals/AlertModal';
-import { changeActiveProfile } from '@/components/services/acmApi';
+import { changeActiveProfileScl } from '@/components/services/acmApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 type Props = {
@@ -28,6 +29,7 @@ type Props = {
   onCustomProfilePress: () => void;
   isSubscribed: boolean;
   onRequireSubscription: () => void;
+  onProfileChange: (profile: string) => void;
 };
 
 export default function ManageProfileGrid({
@@ -35,6 +37,7 @@ export default function ManageProfileGrid({
   onCustomProfilePress,
   isSubscribed,
   onRequireSubscription,
+  onProfileChange,
 }: Props) {
   const colors = Colors.light;
   const [showAll, setShowAll] = useState(false);
@@ -149,16 +152,24 @@ export default function ManageProfileGrid({
     }
   };
 
-  // SmallTimer se hour/minute aata hai, usse duration string banate hain API ke liye
+  // SmallTimer se hour/minute aata hai, phir naye SCL API ko call karte hain
   const handleSmallTimerSubmit = async (hour: number, minute: number) => {
     setShowSmallTimer(false);
 
-    // duration minutes mein bhej rahe hain total
-    const totalMinutes = hour * 60 + minute;
+    // encoded MSISDN chahiye — jo subscribe ke time save hua tha
+    const maskedMsisdn = await AsyncStorage.getItem('maskedMsisdn');
 
-    const result = await changeActiveProfile(selectedProfile, String(totalMinutes));
+    if (!maskedMsisdn) {
+      showAlert('Error', 'Please subscribe first before changing profile');
+      return;
+    }
+
+    const result = await changeActiveProfileScl(maskedMsisdn, selectedProfile);
 
     if (result.success) {
+      // dashboard ke liye save + turant update dono karo
+      await AsyncStorage.setItem('activeProfile', selectedProfile);
+      onProfileChange(selectedProfile);
       showAlert('Success', result.message);
     } else {
       showAlert('Error', result.message);
