@@ -26,6 +26,7 @@ export interface SendOtpResult {
   regionId?: string;
 }
 
+// SEND_OTP API - mobile number pe OTP bhejta hai (server confirm hai ki koi change nahi karni)
 export async function sendOtp(mobile: string): Promise<SendOtpResult> {
   const tid = generateTid();
 
@@ -80,7 +81,7 @@ export async function sendOtp(mobile: string): Promise<SendOtpResult> {
     console.log('sendOtp error:', error);
     return {
       success: false,
-      message: 'Something went wrong, please try again',
+      message: 'something went wrong,please try again',
     };
   }
 }
@@ -91,6 +92,7 @@ export interface SubscribeResult {
   maskedMsisdn?: string;
 }
 
+// Subscribe API (JSON based)
 export async function subscribeUser(mobile: string): Promise<SubscribeResult> {
   const tid = generateTid();
 
@@ -137,7 +139,7 @@ export async function subscribeUser(mobile: string): Promise<SubscribeResult> {
     console.log('subscribeUser error:', error);
     return {
       success: false,
-      message: 'Network error, please check your internet and try again',
+      message: 'something went wrong, please try again',
     };
   }
 }
@@ -153,6 +155,7 @@ export interface EncodeMsisdnResult {
   encodedMsisdn?: string;
 }
 
+//  ChangeActiveProfile API (JSON based)
 export async function changeActiveProfile(
   profileName: string,
   duration: string
@@ -218,6 +221,7 @@ export async function changeActiveProfile(
   }
 }
 
+// Encode API - raw mobile number ko encoded MSISDN mein convert karta hai (baaki SCL APIs ko yahi encoded value chahiye hoti hai)
 export async function encodeMsisdn(
   mobile: string
 ): Promise<EncodeMsisdnResult> {
@@ -260,8 +264,11 @@ export async function encodeMsisdn(
 export interface VerifyOtpResult {
   success: boolean;
   message: string;
+  encodedMsisdn?: string;
 }
 
+// OTP_CNF API - user ne jo OTP dala hai usko server se verify karta hai
+// NOTE: response ka asli format abhi bhi <RESULT>/<DISMSG> nahi, balki alag hai (GET_SUBS_DATA_RSP, RESULT=SUCCESS, MSISDN encoded aata hai) - ye parsing baad mein fix karni hai
 export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpResult> {
   const tid = generateTid();
 
@@ -291,24 +298,26 @@ export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpR
 
     console.log('[verifyOtp] RESPONSE <-', { status: response.status, responseText });
 
+
     const resultMatch = responseText.match(/<RESULT>(.*?)<\/RESULT>/);
-    const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
+    const msisdnMatch = responseText.match(/<MSISDN>(.*?)<\/MSISDN>/);
 
     const result = resultMatch ? resultMatch[1] : '';
-    const disMsg = disMsgMatch ? disMsgMatch[1] : 'Something went wrong, please try again';
+    const encodedMsisdn = msisdnMatch ? msisdnMatch[1] : undefined;
 
-    if (result === 'FAIL') {
-      return { success: false, message: disMsg };
+    if (result === 'SUCCESS') {
+      return { success: true, message: 'OTP verified successfully', encodedMsisdn };
     }
 
-    return { success: true, message: disMsg };
+    return { success: false, message: 'Invalid OTP, please try again' };
   } catch (error) {
     console.log('verifyOtp error:', error);
-    return { success: false, message: 'Network error, please check your internet and try again' };
+    return { success: false, message: 'something went wrong,please try again' };
   }
 }
 
 //------change active profile new---
+
 export interface ChangeProfileSclResult {
   success: boolean;
   message: string;
@@ -365,6 +374,67 @@ export async function changeActiveProfileScl(
     return { success: false, message: msg };
   } catch (error) {
     console.log('changeActiveProfileScl error:', error);
-    return { success: false, message: 'Something went wrong ,please try again' };
+    return { success: false, message: 'Something went wrong, please try again' };
+  }
+}
+
+//------subscribe new (XML/SCL based) ---
+// NAYI Subscribe API - purani JSON wali subscribeUser se alag hai
+// Iske liye pehle encodeMsisdn se encoded MSISDN nikalna zaroori hai, tabhi ye call ho sakti hai
+export interface SubscribeSclResult {
+  success: boolean;
+  message: string;
+}
+
+export async function subscribeUserScl(
+  encodedMsisdn: string
+): Promise<SubscribeSclResult> {
+  const tid = generateTid();
+
+  const xmlBody = `<?xml version="1.0" encoding="ISO-8859-1"?>
+<SCL>
+    <MESSAGETYPE>NEW_USER_REGISTER_REQ</MESSAGETYPE>
+    <MSISDN>${encodedMsisdn}</MSISDN>
+    <TRANSACTION_ID>${tid}</TRANSACTION_ID>
+    <KEYWORD>ACM_APP</KEYWORD>
+    <LANGUAGE>ENGLISH</LANGUAGE>
+    <SERVICE_NAME>ACM</SERVICE_NAME>
+    <APP_VER>3.4</APP_VER>
+    <OS>AN|35</OS>
+    <AUTHKEY>12345</AUTHKEY>
+    <SERVICE_CODE>1234</SERVICE_CODE>
+    <REQTYPE>ACM</REQTYPE>
+</SCL>`;
+
+  console.log('[subscribeUserScl] REQUEST ->', { url: SCL_BASE_URL, encodedMsisdn, tid, xmlBody });
+
+  try {
+    const response = await fetch(SCL_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=ISO-8859-1',
+      },
+      body: xmlBody,
+    });
+
+    const responseText = await response.text();
+
+    console.log('[subscribeUserScl] RESPONSE <-', { status: response.status, responseText });
+
+    // is API mein bhi MSG aur REQ_RESULT tags aate hain (jaise changeActiveProfileScl mein)
+    const msgMatch = responseText.match(/<MSG>(.*?)<\/MSG>/);
+    const reqResultMatch = responseText.match(/<REQ_RESULT>(.*?)<\/REQ_RESULT>/);
+
+    const msg = msgMatch ? msgMatch[1] : 'Something went wrong, please try again';
+    const reqResult = reqResultMatch ? reqResultMatch[1] : '';
+
+    if (reqResult === 'SUCC') {
+      return { success: true, message: msg };
+    }
+
+    return { success: false, message: msg };
+  } catch (error) {
+    console.log('subscribeUserScl error:', error);
+    return { success: false, message: 'Network error, please check your internet and try again' };
   }
 }

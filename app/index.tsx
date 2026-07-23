@@ -50,15 +50,15 @@ export default function LoginScreen() {
     }
 
      // API calling.....
-//       setLoading(true);
-//       const result = await sendOtp(mobile.trim());
-//       setLoading(false);
-//
-//     if (result.success) {
+       setLoading(true);
+       const result = await sendOtp(mobile.trim());
+       setLoading(false);
+
+     if (result.success) {
         router.push({ pathname: '/validate', params: { mobile: mobile.trim() } });
-//                } else {
-//       showAlert('Error', result.message);
-//      }
+                } else {
+       showAlert('Error', result.message);
+     }
     };
 
   const { width, height } = useWindowDimensions();

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Colors } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { subscribeUser } from '@/components/services/acmApi';
+import { encodeMsisdn, subscribeUserScl } from '@/components/services/acmApi';
 import AlertModal from '@/components/ui/modals/AlertModal';
 
 // Subscribe card + welcome modal - main.tsx se yahi cheez hata ke yaha dala hai
@@ -26,7 +26,7 @@ export default function SubscribeCard({ cardWidth, onSubscribe }) {
     setShowWelcomeModal(true);
   };
 
-  // "Okay" dabane pe ab real Subscribe API call hogi
+  // "Okay" dabane pe ab nayi (encode + subscribeUserScl) API flow chalega
   const handleOkayPress = async () => {
     setLoading(true);
 
@@ -39,11 +39,23 @@ export default function SubscribeCard({ cardWidth, onSubscribe }) {
       return;
     }
 
-    const result = await subscribeUser(mobile);
+    // step 1: mobile ko pehle encode karo - nayi Subscribe API ko encoded MSISDN chahiye hoti hai
+    const encodeResult = await encodeMsisdn(mobile);
+
+    if (!encodeResult.success || !encodeResult.encodedMsisdn) {
+      setLoading(false);
+      setShowWelcomeModal(false);
+      showAlert('Error', encodeResult.message);
+      return;
+    }
+
+    // step 2: ab encoded MSISDN se subscribe karo (nayi XML/SCL wali API)
+    const result = await subscribeUserScl(encodeResult.encodedMsisdn);
     setLoading(false);
 
-    if (result.success && result.maskedMsisdn) {
-      await AsyncStorage.setItem('maskedMsisdn', result.maskedMsisdn);
+    if (result.success) {
+      // encoded value hi save kar rahe hain - yahi "maskedMsisdn" ki tarah baaki APIs (profile activate/delete) mein use hoga
+      await AsyncStorage.setItem('maskedMsisdn', encodeResult.encodedMsisdn);
       setShowWelcomeModal(false);
       // ye parent ko batayega ki user subscribe ho gaya
       onSubscribe();
@@ -58,7 +70,7 @@ export default function SubscribeCard({ cardWidth, onSubscribe }) {
       {/* Subscription card */}
       <View style={[styles.subscribeCard, { width: cardWidth, backgroundColor: colors.white }]}>
         <Text style={[styles.subscribeText, { color: colors.text }]}>
-          Subscribe now to personalize and control your calls
+          Subscribe to access Service of Airtel Call Manager
         </Text>
 
         <TouchableOpacity
@@ -110,28 +122,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    padding: 16,
     elevation: 3,
-    shadowColor: Colors.light.black,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
   },
   subscribeText: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 19,
+    fontSize: 13,
+    lineHeight: 18,
     marginRight: 12,
   },
   subscribeButton: {
     borderRadius: 99,
-    paddingVertical: 12,
-    paddingHorizontal: 22,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
   },
   subscribeButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
   modalOverlay: {
@@ -142,24 +152,22 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     borderRadius: 16,
-    paddingVertical: 28,
-    paddingHorizontal: 24,
+    padding: 24,
     alignItems: 'center',
   },
   modalText: {
-    fontSize: 15,
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
+    marginBottom: 20,
+    lineHeight: 21,
   },
   modalBtn: {
     borderRadius: 99,
-    paddingVertical: 14,
-    width: '100%',
-    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 50,
   },
   modalBtnText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
   },
 });

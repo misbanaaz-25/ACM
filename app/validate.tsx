@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter ,useLocalSearchParams } from 'expo-router';
 import AlertModal from '@/components/ui/modals/AlertModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { sendOtp, encodeMsisdn, verifyOtp} from '@/components/services/acmApi';
+import { sendOtp, verifyOtp} from '@/components/services/acmApi';
 import { Colors } from '@/constants/theme';
 
 export default function LoginScreen() {
@@ -75,29 +75,25 @@ const validateOTP = async () => {
 
   setLoading(true);
 
-  // step 1: pehle OTP ko server se verify karo
-//   const otpResult = await verifyOtp(mobile.trim(), otp.trim());
-//
-//   if (!otpResult.success) {
-//     setLoading(false);2
-//     showAlert('Error', otpResult.message);
-//     return;
-//   }
-//
-//   // step 2: OTP sahi tha, ab mobile number ko encode karo
-//   const result = await encodeMsisdn(mobile.trim());
-//
-//   if (!result.success) {
-//     setLoading(false);
-//     showAlert('Error', result.message);
-//     return;
-//   }
-//
-//   console.log('Encoded MSISDN:', result.encodedMsisdn);
-//
-//   // mobile number save kar rahe hain taaki baad me subscribe ke time use ho sake
-//   await AsyncStorage.setItem('mobileNumber', mobile.trim());
-//   setLoading(false);
+  // step 1: OTP ko server se verify karo - is response mein encoded MSISDN bhi milta hai,
+  // isliye alag se encodeMsisdn call karne ki zaroorat nahi hai ab
+  const otpResult = await verifyOtp(mobile.trim(), otp.trim());
+
+  if (!otpResult.success) {
+    setLoading(false);
+    showAlert('Error', otpResult.message);
+    return;
+  }
+
+  // mobile number save kar rahe hain taaki baad me Settings/Subscribe ke time use ho sake
+  await AsyncStorage.setItem('mobileNumber', mobile.trim());
+
+  // encoded MSISDN bhi seedha yahin save kar rahe hain - agli baar Subscribe API ko yahi chahiye hogi
+  if (otpResult.encodedMsisdn) {
+    await AsyncStorage.setItem('maskedMsisdn', otpResult.encodedMsisdn);
+  }
+
+  setLoading(false);
 
   router.push('/main');
 };
