@@ -38,8 +38,17 @@ export default function LoginScreen() {
 
  useFocusEffect(
    useCallback(() => {
-     setMobile(mobileParam || '');
-     setOtp('');
+     const restoreMobile = async () => {
+       // agar URL se number nahi mila (jaise back button se aane par), toh AsyncStorage se le lo
+       if (mobileParam) {
+         setMobile(mobileParam);
+       } else {
+         const saved = await AsyncStorage.getItem('mobileNumber');
+         setMobile(saved || '');
+       }
+       setOtp('');
+     };
+     restoreMobile();
    }, [mobileParam])
  );
 
@@ -77,23 +86,23 @@ const validateOTP = async () => {
 
   // step 1: OTP ko server se verify karo - is response mein encoded MSISDN bhi milta hai,
   // isliye alag se encodeMsisdn call karne ki zaroorat nahi hai ab
-  const otpResult = await verifyOtp(mobile.trim(), otp.trim());
-
-  if (!otpResult.success) {
-    setLoading(false);
-    showAlert('Error', otpResult.message);
-    return;
-  }
-
-  // mobile number save kar rahe hain taaki baad me Settings/Subscribe ke time use ho sake
-  await AsyncStorage.setItem('mobileNumber', mobile.trim());
-
-  // encoded MSISDN bhi seedha yahin save kar rahe hain - agli baar Subscribe API ko yahi chahiye hogi
-  if (otpResult.encodedMsisdn) {
-    await AsyncStorage.setItem('maskedMsisdn', otpResult.encodedMsisdn);
-  }
-
-  setLoading(false);
+//   const otpResult = await verifyOtp(mobile.trim(), otp.trim());
+//
+//   if (!otpResult.success) {
+//     setLoading(false);
+//     showAlert('Error', otpResult.message);
+//     return;
+//   }
+//
+//   // mobile number save kar rahe hain taaki baad me Settings/Subscribe ke time use ho sake
+//   await AsyncStorage.setItem('mobileNumber', mobile.trim());
+//
+//   // encoded MSISDN bhi seedha yahin save kar rahe hain - agli baar Subscribe API ko yahi chahiye hogi
+//   if (otpResult.encodedMsisdn) {
+//     await AsyncStorage.setItem('maskedMsisdn', otpResult.encodedMsisdn);
+//   }
+//
+//   setLoading(false);
 
   router.push('/main');
 };

@@ -7,7 +7,8 @@ import {
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -25,13 +26,17 @@ export default function SettingsScreen() {
 
   const [mobileNumber, setMobileNumber] = useState('');
 
-  useEffect(() => {
-    const loadMobile = async () => {
-      const saved = await AsyncStorage.getItem('mobileNumber');
-      if (saved) setMobileNumber(saved);
-    };
-    loadMobile();
-  }, []);
+  // useEffect ki jagah useFocusEffect - ye har baar chalega jab screen focus mein aayegi,
+  // isliye number hamesha latest (fresh) dikhega, chahe kitni baar bhi is screen pe aao
+  useFocusEffect(
+    useCallback(() => {
+      const loadMobile = async () => {
+        const saved = await AsyncStorage.getItem('mobileNumber');
+        if (saved) setMobileNumber(saved);
+      };
+      loadMobile();
+    }, [])
+  );
 
   const menuItems = [
     { icon: <TutorialIcon size={20} color="#000" />, label: 'View tutorial' },
