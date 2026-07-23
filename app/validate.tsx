@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter ,useLocalSearchParams } from 'expo-router';
 import AlertModal from '@/components/ui/modals/AlertModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendOtp, encodeMsisdn, verifyOtp} from '@/components/services/acmApi';
@@ -29,15 +29,18 @@ export default function LoginScreen() {
   const [isResendDisabled, setIsResendDisabled] = useState(false);
 
   const router = useRouter();
+  const { mobile: mobileParam } = useLocalSearchParams<{ mobile?: string }>();
+
+
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
 
  useFocusEffect(
    useCallback(() => {
-     setMobile('');
+     setMobile(mobileParam || '');
      setOtp('');
-   }, [])
+   }, [mobileParam])
  );
 
   const showAlert = (title: string, message: string) => {
@@ -73,28 +76,28 @@ const validateOTP = async () => {
   setLoading(true);
 
   // step 1: pehle OTP ko server se verify karo
-  const otpResult = await verifyOtp(mobile.trim(), otp.trim());
-
-  if (!otpResult.success) {
-    setLoading(false);2
-    showAlert('Error', otpResult.message);
-    return;
-  }
-
-  // step 2: OTP sahi tha, ab mobile number ko encode karo
-  const result = await encodeMsisdn(mobile.trim());
-
-  if (!result.success) {
-    setLoading(false);
-    showAlert('Error', result.message);
-    return;
-  }
-
-  console.log('Encoded MSISDN:', result.encodedMsisdn);
-
-  // mobile number save kar rahe hain taaki baad me subscribe ke time use ho sake
-  await AsyncStorage.setItem('mobileNumber', mobile.trim());
-  setLoading(false);
+//   const otpResult = await verifyOtp(mobile.trim(), otp.trim());
+//
+//   if (!otpResult.success) {
+//     setLoading(false);2
+//     showAlert('Error', otpResult.message);
+//     return;
+//   }
+//
+//   // step 2: OTP sahi tha, ab mobile number ko encode karo
+//   const result = await encodeMsisdn(mobile.trim());
+//
+//   if (!result.success) {
+//     setLoading(false);
+//     showAlert('Error', result.message);
+//     return;
+//   }
+//
+//   console.log('Encoded MSISDN:', result.encodedMsisdn);
+//
+//   // mobile number save kar rahe hain taaki baad me subscribe ke time use ho sake
+//   await AsyncStorage.setItem('mobileNumber', mobile.trim());
+//   setLoading(false);
 
   router.push('/main');
 };

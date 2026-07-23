@@ -80,7 +80,7 @@ export async function sendOtp(mobile: string): Promise<SendOtpResult> {
     console.log('sendOtp error:', error);
     return {
       success: false,
-      message: 'Network error, please check your internet and try again',
+      message: 'Something went wrong, please try again',
     };
   }
 }
@@ -365,6 +365,6 @@ export async function changeActiveProfileScl(
     return { success: false, message: msg };
   } catch (error) {
     console.log('changeActiveProfileScl error:', error);
-    return { success: false, message: 'Network error, please check your internet and try again' };
+    return { success: false, message: 'Something went wrong ,please try again' };
   }
 }

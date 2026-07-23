@@ -7,6 +7,8 @@ import {
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -20,6 +22,16 @@ export default function SettingsScreen() {
   const { width } = useWindowDimensions();
   const cardWidth = width > 500 ? 480 : width * 0.9;
   const router = useRouter();
+
+  const [mobileNumber, setMobileNumber] = useState('');
+
+  useEffect(() => {
+    const loadMobile = async () => {
+      const saved = await AsyncStorage.getItem('mobileNumber');
+      if (saved) setMobileNumber(saved);
+    };
+    loadMobile();
+  }, []);
 
   const menuItems = [
     { icon: <TutorialIcon size={20} color="#000" />, label: 'View tutorial' },
@@ -54,7 +66,7 @@ export default function SettingsScreen() {
 
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>User</Text>
-                <Text style={styles.userPhone}>+91 6584357775</Text>
+                <Text style={styles.userPhone}>+91 {mobileNumber}</Text>
               </View>
 
               <TouchableOpacity style={styles.createProfileBtn} onPress={() => router.push('/Create_profile')}>

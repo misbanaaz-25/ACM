@@ -37,7 +37,7 @@ export default function LoginScreen() {
   };
 
   //logic of validation
-  const validateMobile = async () => {
+   const validateMobile = async () => {
 
     if (mobile.trim() === '') {
       showAlert('Error', 'Please enter your mobile number');
@@ -49,17 +49,17 @@ export default function LoginScreen() {
       return;
     }
 
-    // API calling.....
-    setLoading(true);
-    const result = await sendOtp(mobile.trim());
-    setLoading(false);
-
-    if (result.success) {
-      router.push('/validate');
-    } else {
-      showAlert('Error', result.message);
-    }
-  };
+     // API calling.....
+//       setLoading(true);
+//       const result = await sendOtp(mobile.trim());
+//       setLoading(false);
+//
+//     if (result.success) {
+        router.push({ pathname: '/validate', params: { mobile: mobile.trim() } });
+//                } else {
+//       showAlert('Error', result.message);
+//      }
+    };
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;

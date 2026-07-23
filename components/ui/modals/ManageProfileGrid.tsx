@@ -29,7 +29,7 @@ type Props = {
   onCustomProfilePress: () => void;
   isSubscribed: boolean;
   onRequireSubscription: () => void;
-  onProfileChange: (profile: string) => void;
+  onProfileChange: (profile: string, endTime: number | null) => void;
 };
 
 export default function ManageProfileGrid({
@@ -167,9 +167,18 @@ export default function ManageProfileGrid({
     const result = await changeActiveProfileScl(maskedMsisdn, selectedProfile);
 
     if (result.success) {
+      // duration se timer ka "end time" nikal rahe hain (abhi ka time + total seconds)
+      const totalMs = (hour * 60 + minute) * 60 * 1000;
+      const endTime = totalMs > 0 ? Date.now() + totalMs : null;
+
       // dashboard ke liye save + turant update dono karo
       await AsyncStorage.setItem('activeProfile', selectedProfile);
-      onProfileChange(selectedProfile);
+      if (endTime) {
+        await AsyncStorage.setItem('profileEndTime', String(endTime));
+      } else {
+        await AsyncStorage.removeItem('profileEndTime');
+      }
+      onProfileChange(selectedProfile, endTime);
       showAlert('Success', result.message);
     } else {
       showAlert('Error', result.message);
