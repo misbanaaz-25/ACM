@@ -154,7 +154,13 @@ export default function HomeScreen() {
           )}
 
           {/* Dashboard card - ab separate file mein hai */}
-          <DashboardCard cardWidth={cardWidth} activeProfile={activeProfile} profileEndTime={profileEndTime} onDeleteProfile={handleDeleteProfile} />
+          <DashboardCard
+
+           cardWidth={cardWidth}
+           activeProfile={activeProfile}
+           profileEndTime={profileEndTime}
+           onDeleteProfile={handleDeleteProfile}
+           />
 
              {/* Manage / Schedule Profile card */}
           <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>

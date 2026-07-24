@@ -1,5 +1,3 @@
-// ACM ka API service - yaha saare backend calls honge
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SCL_BASE_URL = 'https://acm.mcarbon.com/ACM_APP_3.4/SclClient';
@@ -216,7 +214,7 @@ export async function changeActiveProfile(
     console.log('changeActiveProfile error:', error);
     return {
       success: false,
-      message: 'Network error, please check your internet and try again',
+      message: 'Something went wrong,please try again later',
     };
   }
 }
@@ -268,7 +266,6 @@ export interface VerifyOtpResult {
 }
 
 // OTP_CNF API - user ne jo OTP dala hai usko server se verify karta hai
-// NOTE: response ka asli format abhi bhi <RESULT>/<DISMSG> nahi, balki alag hai (GET_SUBS_DATA_RSP, RESULT=SUCCESS, MSISDN encoded aata hai) - ye parsing baad mein fix karni hai
 export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpResult> {
   const tid = generateTid();
 
@@ -298,7 +295,6 @@ export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpR
 
     console.log('[verifyOtp] RESPONSE <-', { status: response.status, responseText });
 
-
     const resultMatch = responseText.match(/<RESULT>(.*?)<\/RESULT>/);
     const msisdnMatch = responseText.match(/<MSISDN>(.*?)<\/MSISDN>/);
 
@@ -317,7 +313,8 @@ export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpR
 }
 
 //------change active profile new---
-
+// NOTE: server kabhi kabhi REQ_RESULT mein "SUCC" bhej deta hai chahe request actually FAIL ho -
+// isliye asli success/fail STATUS aur DISMSG tags se pata chalta hai, sirf REQ_RESULT se nahi
 export interface ChangeProfileSclResult {
   success: boolean;
   message: string;
@@ -360,18 +357,21 @@ export async function changeActiveProfileScl(
 
     console.log('[changeActiveProfileScl] RESPONSE <-', { status: response.status, responseText });
 
-    // server yahan RESULT/DISMSG nahi, MSG aur REQ_RESULT tags bhejta hai
+    // STATUS/DISMSG asli result batate hain - REQ_RESULT akela bharosemand nahi hai
     const msgMatch = responseText.match(/<MSG>(.*?)<\/MSG>/);
-    const reqResultMatch = responseText.match(/<REQ_RESULT>(.*?)<\/REQ_RESULT>/);
+    const statusMatch = responseText.match(/<STATUS>(.*?)<\/STATUS>/);
+    const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
 
     const msg = msgMatch ? msgMatch[1] : 'Something went wrong, please try again';
-    const reqResult = reqResultMatch ? reqResultMatch[1] : '';
+    const status = statusMatch ? statusMatch[1] : '';
+    const disMsg = disMsgMatch ? disMsgMatch[1] : '';
 
-    if (reqResult === 'SUCC') {
-      return { success: true, message: msg };
+    // agar STATUS field aayi hai aur wo FALSE hai, toh ye asal mein fail hai
+    if (status === 'FALSE') {
+      return { success: false, message: disMsg || msg };
     }
 
-    return { success: false, message: msg };
+    return { success: true, message: msg };
   } catch (error) {
     console.log('changeActiveProfileScl error:', error);
     return { success: false, message: 'Something went wrong, please try again' };
@@ -379,8 +379,8 @@ export async function changeActiveProfileScl(
 }
 
 //------subscribe new (XML/SCL based) ---
-// NAYI Subscribe API - purani JSON wali subscribeUser se alag hai
 // Iske liye pehle encodeMsisdn se encoded MSISDN nikalna zaroori hai, tabhi ye call ho sakti hai
+// NOTE: yahan bhi STATUS/DISMSG se asli result pata chalta hai, REQ_RESULT akela check karna sahi nahi hai
 export interface SubscribeSclResult {
   success: boolean;
   message: string;
@@ -421,20 +421,22 @@ export async function subscribeUserScl(
 
     console.log('[subscribeUserScl] RESPONSE <-', { status: response.status, responseText });
 
-    // is API mein bhi MSG aur REQ_RESULT tags aate hain (jaise changeActiveProfileScl mein)
     const msgMatch = responseText.match(/<MSG>(.*?)<\/MSG>/);
-    const reqResultMatch = responseText.match(/<REQ_RESULT>(.*?)<\/REQ_RESULT>/);
+    const statusMatch = responseText.match(/<STATUS>(.*?)<\/STATUS>/);
+    const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
 
     const msg = msgMatch ? msgMatch[1] : 'Something went wrong, please try again';
-    const reqResult = reqResultMatch ? reqResultMatch[1] : '';
+    const status = statusMatch ? statusMatch[1] : '';
+    const disMsg = disMsgMatch ? disMsgMatch[1] : '';
 
-    if (reqResult === 'SUCC') {
-      return { success: true, message: msg };
+    // agar STATUS field aayi hai aur wo FALSE hai, toh ye asal mein fail hai (chahe REQ_RESULT SUCC ho)
+    if (status === 'FALSE') {
+      return { success: false, message: disMsg || msg };
     }
 
-    return { success: false, message: msg };
+    return { success: true, message: msg };
   } catch (error) {
     console.log('subscribeUserScl error:', error);
-    return { success: false, message: 'Network error, please check your internet and try again' };
+    return { success: false, message: 'something went wrong ,please try again' };
   }
 }

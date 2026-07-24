@@ -16,9 +16,8 @@ import AlertModal from '@/components/ui/modals/AlertModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendOtp, verifyOtp } from '@/components/services/acmApi';
 import { Colors } from '@/constants/theme';
-
-// ⚠️ TESTING VERSION - API calls comment kiye hue hain, taaki bina real OTP ke flow test kar sako
-// Real testing/demo ke waqt saare comments hata dena aur original API calls wapas laga dena
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 export default function LoginScreen() {
   const colors = Colors.light;
@@ -33,6 +32,10 @@ export default function LoginScreen() {
   const [timer, setTimer] = useState(0);
   const [isResendDisabled, setIsResendDisabled] = useState(false);
 
+  // Editable mobile number (OTP step) - tap number to edit, no pencil icon
+  const [isEditingMobile, setIsEditingMobile] = useState(false);
+  const [editedMobile, setEditedMobile] = useState('');
+
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
@@ -43,7 +46,7 @@ export default function LoginScreen() {
     setAlertVisible(true);
   };
 
-  // Step 1: "Get OTP" dabane par
+  // Step 1: "Get OTP"
   const handleGetOtp = async () => {
     if (mobile.trim() === '') {
       showAlert('Error', 'Please enter your mobile number');
@@ -55,7 +58,7 @@ export default function LoginScreen() {
       return;
     }
 
-    // TESTING: API call skip kiya hai, seedha step change kar rahe hain
+    // TESTING
     // setLoading(true);
     // const result = await sendOtp(mobile.trim());
     // setLoading(false);
@@ -67,7 +70,7 @@ export default function LoginScreen() {
     // }
   };
 
-  // Step 2: "Validate" dabane par
+  // Step 2: "Validate"
   const handleValidateOtp = async () => {
     if (otp.trim() === '') {
       showAlert('Error', 'Please enter OTP');
@@ -79,7 +82,7 @@ export default function LoginScreen() {
       return;
     }
 
-    // TESTING: verifyOtp API skip kiya hai, seedha navigate kar rahe hain
+    // TESTING:
     // setLoading(true);
     // const otpResult = await verifyOtp(mobile.trim(), otp.trim());
 
@@ -104,7 +107,7 @@ export default function LoginScreen() {
     setTimer(30);
     setLoading(true);
 
-    // TESTING: resend bhi skip kar sakti ho, but rehne dete hain agar real test karna ho isko
+    // TESTING
     const result = await sendOtp(mobile.trim());
     setLoading(false);
 
@@ -113,10 +116,43 @@ export default function LoginScreen() {
     }
   };
 
-  // "Change number" - wapas step 1 pe le jayega, OTP field clear kar dega
-  const handleChangeNumber = () => {
-    setStep('mobile');
+  // Tap on mobile number (OTP step) to start editing directly - no pencil icon
+  const handleStartEditMobile = () => {
+    if (loading) return;
+    setEditedMobile(mobile);
+    setIsEditingMobile(true);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      setStep('mobile');
+      setMobile('');
+      setOtp('');
+      setEditedMobile('');
+
+      return () => {};
+    }, [])
+  );
+
+  // Save edited number -> validate -> trigger fresh OTP
+  const handleSaveMobile = async () => {
+    if (!/^\d{10}$/.test(editedMobile.trim())) {
+      showAlert('Error', 'Please enter a valid 10 digit mobile number');
+      return;
+    }
+
+    setMobile(editedMobile.trim());
+    setIsEditingMobile(false);
     setOtp('');
+
+    // TESTING
+    // setLoading(true);
+    // const result = await sendOtp(editedMobile.trim());
+    // setLoading(false);
+
+    // if (!result.success) {
+    //   showAlert('Error', result.message);
+    // }
   };
 
   useEffect(() => {
@@ -159,8 +195,10 @@ export default function LoginScreen() {
                 styles.card,
                 {
                   width: width > 500 ? 420 : width * 0.9,
-                  paddingVertical: isLandscape ? 12 : 20,
-                  backgroundColor: colors.white,
+                  minHeight: step === 'otp' ? 340 : 260,
+                  paddingVertical: isLandscape ? 12 : 22,
+                  backgroundColor: colors.surface,
+                  shadowColor: colors.black,
                 },
               ]}
             >
@@ -177,7 +215,7 @@ export default function LoginScreen() {
                     <TextInput
                       style={[styles.input, { color: colors.text }]}
                       placeholder="Enter Mobile number"
-                      placeholderTextColor="#aaa"
+                      placeholderTextColor={colors.textSecondary}
                       keyboardType="phone-pad"
                       maxLength={10}
                       value={mobile}
@@ -191,7 +229,7 @@ export default function LoginScreen() {
                     onPress={handleGetOtp}
                     disabled={loading}
                   >
-                    <Text style={styles.buttonText}>
+                    <Text style={[styles.buttonText, { color: colors.white }]}>
                       {loading ? 'Please wait...' : 'Get OTP'}
                     </Text>
                   </TouchableOpacity>
@@ -203,19 +241,26 @@ export default function LoginScreen() {
                   </Text>
 
                   <View style={[styles.inputRow, { borderColor: colors.border }]}>
-                    <View style={[styles.countryCode, { backgroundColor: colors.secondary, borderRightColor: colors.border }]}>
-                      <Text style={[styles.countryText, { color: colors.text }]}>+91</Text>
-                    </View>
-                    <Text style={[styles.input, { color: colors.text, textAlignVertical: 'center' }]}>
-                      {mobile}
-                    </Text>
+                     <View style={[styles.countryCode, { backgroundColor: colors.secondary, borderRightColor: colors.border }]}>
+                     <Text style={[styles.countryText, { color: colors.text }]}>+91</Text>
+                     </View>
+                     <TextInput
+                      style={[styles.input, { color: colors.text }]}
+                      placeholder="Enter Mobile number"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                      value={mobile}
+                      onChangeText={setMobile}
+                      editable={!loading}
+                    />
                   </View>
 
                   <View style={[styles.inputRow, { borderColor: colors.border }]}>
                     <TextInput
                       style={[styles.input, { color: colors.text }]}
                       placeholder="Enter OTP"
-                      placeholderTextColor="#aaa"
+                      placeholderTextColor={colors.textSecondary}
                       keyboardType="phone-pad"
                       maxLength={4}
                       value={otp}
@@ -229,24 +274,18 @@ export default function LoginScreen() {
                     onPress={handleValidateOtp}
                     disabled={loading}
                   >
-                    <Text style={styles.buttonText}>
+                    <Text style={[styles.buttonText, { color: colors.white }]}>
                       {loading ? 'Please wait...' : 'Validate'}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.button1, { borderColor: colors.primary }, isResendDisabled && { opacity: 0.6 }]}
+                    style={[styles.button1, { borderColor: colors.primary, backgroundColor: colors.white }, isResendDisabled && { opacity: 0.6 }]}
                     disabled={isResendDisabled}
                     onPress={handleResendOTP}
                   >
                     <Text style={[styles.buttonText1, { color: colors.primary }]}>
                       {isResendDisabled ? `Resend OTP (${timer}s)` : 'Resend OTP'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity onPress={handleChangeNumber} disabled={loading}>
-                    <Text style={[styles.changeNumberText, { color: colors.primary }]}>
-                      Change mobile number
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -293,7 +332,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 480,
     elevation: 3,
-    shadowColor: '#000',
+    justifyContent: 'center',
   },
   subtitle: {
     fontSize: 13,
@@ -302,12 +341,15 @@ const styles = StyleSheet.create({
   },
   inputRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 16,
+    height: 48,
   },
   countryCode: {
+    height: '100%',
     paddingHorizontal: 12,
     justifyContent: 'center',
     borderRightWidth: 1,
@@ -318,9 +360,19 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    height: '100%',
     paddingHorizontal: 12,
+    paddingVertical: 0,
     fontSize: 14,
-    height: 48,
+    includeFontPadding: false,
+  },
+  tapToEdit: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+  },
+  mobileDisplayText: {
+    fontWeight: '400',
   },
   button: {
     borderRadius: 99,
@@ -329,12 +381,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   button1: {
-    backgroundColor: '#fff',
     borderWidth: 1,
     borderRadius: 99,
     paddingVertical: 14,
@@ -344,13 +394,6 @@ const styles = StyleSheet.create({
   buttonText1: {
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  changeNumberText: {
-    textAlign: 'center',
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 12,
-    textDecorationLine: 'underline',
   },
   footer: {
     fontSize: 12,

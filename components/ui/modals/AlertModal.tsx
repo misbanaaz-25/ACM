@@ -10,7 +10,6 @@ import { Colors } from '@/constants/theme';
 
 type AlertModalProps = {
   visible: boolean;
-  title: string;
   message: string;
   onClose: () => void;
   illustration?: React.ReactNode; // optional - jab pass hoga tabhi dikhega
@@ -18,7 +17,6 @@ type AlertModalProps = {
 
 export default function AlertModal({
   visible,
-  title,
   message,
   onClose,
   illustration,
@@ -38,9 +36,8 @@ export default function AlertModal({
             </View>
           )}
 
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
 
+          <Text style={styles.message}>{message}</Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>OK</Text>
           </TouchableOpacity>
@@ -89,12 +86,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
+    justifyContent: 'center', // Vertical center
+    alignItems: 'center',
+    width: '70%',
     backgroundColor: Colors.light.primary,
     borderRadius: 99,
     paddingVertical: 12,
     paddingHorizontal: 40,
   },
   buttonText: {
+     textAlign:'center',
     color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',

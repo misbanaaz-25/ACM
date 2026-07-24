@@ -21,14 +21,14 @@ function formatRemaining(ms: number): string {
   return `${pad(hrs)} hr: ${pad(mins)} min: ${pad(secs)} sec`;
 }
 
-export default function DashboardCard({ cardWidth, activeProfile, profileEndTime, onDeleteProfile }: DashboardCardProps) {
+export default function DashboardCard({
+    cardWidth, activeProfile, profileEndTime, onDeleteProfile }: DashboardCardProps)
+{
   const router = useRouter();
   const colors = Colors.light;
-
   const hasActiveProfile = activeProfile !== 'No profile';
-
   const [remainingMs, setRemainingMs] = useState<number>(
-    profileEndTime ? profileEndTime - Date.now() : 0
+      profileEndTime ? profileEndTime - Date.now() : 0
   );
 
   // har second countdown update karo jab tak profileEndTime set hai
@@ -55,6 +55,7 @@ export default function DashboardCard({ cardWidth, activeProfile, profileEndTime
   }, [profileEndTime]);
 
   const timerLabel = profileEndTime ? formatRemaining(remainingMs) : '00 hr: 00 min: 00 sec';
+
 
   return (
     <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
   },
   deleteIconBtn: {
     marginTop: -90,
-    marginLeft: 130,
+    marginLeft: 120,
     fontWeight:'700',
     width:'200',
   },
