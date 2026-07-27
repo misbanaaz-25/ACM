@@ -62,6 +62,7 @@ export default function PhoneBackupScreen() {
 
 const styles = StyleSheet.create({
   scrollContent: {
+      paddingTop:60,
     alignItems: 'center',
     paddingVertical: 30,
     paddingBottom: 60,

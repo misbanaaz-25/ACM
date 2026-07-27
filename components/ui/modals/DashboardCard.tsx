@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
+import { useCountdownTimer } from '@/hooks/useCountdownTimer';
 
 interface DashboardCardProps {
   cardWidth: number;
@@ -11,51 +11,16 @@ interface DashboardCardProps {
   onDeleteProfile: () => void;
 }
 
-// milliseconds ko "00 hr: 00 min: 00 sec" format mein badalta hai
-function formatRemaining(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const hrs = Math.floor(totalSeconds / 3600);
-  const mins = Math.floor((totalSeconds % 3600) / 60);
-  const secs = totalSeconds % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(hrs)} hr: ${pad(mins)} min: ${pad(secs)} sec`;
-}
-
 export default function DashboardCard({
     cardWidth, activeProfile, profileEndTime, onDeleteProfile }: DashboardCardProps)
 {
   const router = useRouter();
   const colors = Colors.light;
   const hasActiveProfile = activeProfile !== 'No profile';
-  const [remainingMs, setRemainingMs] = useState<number>(
-      profileEndTime ? profileEndTime - Date.now() : 0
-  );
 
-  // har second countdown update karo jab tak profileEndTime set hai
-  useEffect(() => {
-    if (!profileEndTime) {
-      setRemainingMs(0);
-      return;
-    }
-
-    setRemainingMs(profileEndTime - Date.now());
-
-    const interval = setInterval(() => {
-      const left = profileEndTime - Date.now();
-      setRemainingMs(left);
-
-      // time khatam hote hi profile ko reset karne ke liye parent ko batao
-      if (left <= 0) {
-        clearInterval(interval);
-        onDeleteProfile();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [profileEndTime]);
-
-  const timerLabel = profileEndTime ? formatRemaining(remainingMs) : '00 hr: 00 min: 00 sec';
-
+  // SRP fix: countdown timer ka poora logic (setInterval + formatting) ab is hook ke andar hai
+  // ye component ab sirf UI dikhane pe focus karta hai
+  const { timerLabel } = useCountdownTimer(profileEndTime, onDeleteProfile);
 
   return (
     <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>

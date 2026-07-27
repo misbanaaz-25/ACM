@@ -1,12 +1,15 @@
+// ACM ka API service file
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SCL_BASE_URL = 'https://acm.mcarbon.com/ACM_APP_3.4/SclClient';
 const SUBSCRIBE_URL = 'https://acm.mcarbon.com/ACMService/thirdparty/v1/Subscribe';
 const CHANGE_PROFILE_URL = 'https://acm.mcarbon.com/ACMService/thirdparty/v1/ChangeActiveProfile';
 const ENCODE_MSISDN_URL = 'https://acm.mcarbon.com/ACMService/encode';
-const OTP_CNF_URL = SCL_BASE_URL;
+const OTP_CNF_URL = SCL_BASE_URL; // OTP confirm bhi same SCL server pe jata hai
 
-// har request ko unique TID chahiye hota hai, isliye time se generate kar rahe hain
+// server ko har request ke saath ek unique transaction id chahiye hoti hai
+// isliye current date-time se hi ek id bana rahe hain, kaafi common tarika hai
 function generateTid(): string {
   const now = new Date();
   const yy = String(now.getFullYear()).slice(2);
@@ -18,13 +21,51 @@ function generateTid(): string {
   return `${yy}${mm}${dd}${hh}${min}${ss}`;
 }
 
+//updated profile name !
+
+const PROFILE_NAME_MAP: Record<string, string> = {
+  'Meeting': 'Meeting',
+  'General': 'General',
+  'Driving': 'Driving',
+  'Not Available': 'Not_Available',
+  'Not Well': 'Not_Well',
+  'Holiday': 'Holiday',
+  'Travelling': 'Travelling',
+  'Busy': 'Busy',
+  'Low Battery': 'Low_Battery',
+  'Watching Movie': 'Watching_Movie',
+  'Gym': 'Gym',
+  'DND': 'DND',
+  'Training': 'Training',
+  'Urgent Calls Only': 'Urgent',
+  'Watching Cricket': 'Watching_Cricket',
+};
+
+
+function toBackendProfileName(displayName: string): string {
+  return PROFILE_NAME_MAP[displayName] ?? displayName.replace(/ /g, '_');
+}
+
+
+function parseSclXmlResponse(responseText: string) {
+  const msgMatch = responseText.match(/<MSG>(.*?)<\/MSG>/);
+  const statusMatch = responseText.match(/<STATUS>(.*?)<\/STATUS>/);
+  const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
+
+  return {
+    msg: msgMatch ? msgMatch[1] : '',
+    status: statusMatch ? statusMatch[1] : '',
+    disMsg: disMsgMatch ? disMsgMatch[1] : '',
+  };
+}
+
 export interface SendOtpResult {
   success: boolean;
   message: string;
   regionId?: string;
 }
 
-// SEND_OTP API - mobile number pe OTP bhejta hai (server confirm hai ki koi change nahi karni)
+//  OTP API
 export async function sendOtp(mobile: string): Promise<SendOtpResult> {
   const tid = generateTid();
 
@@ -55,25 +96,22 @@ export async function sendOtp(mobile: string): Promise<SendOtpResult> {
 
     console.log('[sendOtp] RESPONSE <-', { status: response.status, responseText });
 
-    // response XML mein aata hai, regex se values nikal rahe hain
-    const statusMatch = responseText.match(/<STATUS>(.*?)<\/STATUS>/);
-    const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
+    const { status, disMsg } = parseSclXmlResponse(responseText);
     const regionMatch = responseText.match(/<REGIONID>(.*?)<\/REGIONID>/);
 
-    const status = statusMatch ? statusMatch[1] : '';
-    const disMsg = disMsgMatch ? disMsgMatch[1] : 'Something went wrong, please try again';
+    const finalMsg = disMsg || 'Something went wrong, please try again';
 
     if (status === 'TRUE') {
       return {
         success: true,
-        message: disMsg,
+        message: finalMsg,
         regionId: regionMatch ? regionMatch[1] : undefined,
       };
     }
 
     return {
       success: false,
-      message: disMsg,
+      message: finalMsg,
     };
   } catch (error) {
     console.log('sendOtp error:', error);
@@ -90,7 +128,7 @@ export interface SubscribeResult {
   maskedMsisdn?: string;
 }
 
-// Subscribe API (JSON based)
+// ye purani Subscribe API hai (JSON body wali)
 export async function subscribeUser(mobile: string): Promise<SubscribeResult> {
   const tid = generateTid();
 
@@ -153,12 +191,13 @@ export interface EncodeMsisdnResult {
   encodedMsisdn?: string;
 }
 
-//  ChangeActiveProfile API (JSON based)
+//  (JSON based ChangeActiveProfile)
+// changeActiveProfileScl is in use now
 export async function changeActiveProfile(
   profileName: string,
   duration: string
 ): Promise<ChangeProfileResult> {
-  // pehle saved maskedMsisdn nikalna hoga, jo subscribe ke time save hua tha
+  // pehle AsyncStorage se maskedMsisdn nikalna padega, subscribe ke time save hua tha
   const maskedMsisdn = await AsyncStorage.getItem('maskedMsisdn');
 
   if (!maskedMsisdn) {
@@ -219,7 +258,8 @@ export async function changeActiveProfile(
   }
 }
 
-// Encode API - raw mobile number ko encoded MSISDN mein convert karta hai (baaki SCL APIs ko yahi encoded value chahiye hoti hai)
+// raw mobile number ko encoded MSISDN mein badalne ke liye
+// baaki jo bhi SCL based APIs hai unko yahi encoded value chahiye hoti hai, raw number nahi
 export async function encodeMsisdn(
   mobile: string
 ): Promise<EncodeMsisdnResult> {
@@ -254,7 +294,7 @@ export async function encodeMsisdn(
 
     return {
       success: false,
-      message: 'Network error',
+      message: 'Something went wrong,please try again later',
     };
   }
 }
@@ -265,7 +305,8 @@ export interface VerifyOtpResult {
   encodedMsisdn?: string;
 }
 
-// OTP_CNF API - user ne jo OTP dala hai usko server se verify karta hai
+//  OTP verify  API
+
 export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpResult> {
   const tid = generateTid();
 
@@ -295,6 +336,7 @@ export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpR
 
     console.log('[verifyOtp] RESPONSE <-', { status: response.status, responseText });
 
+
     const resultMatch = responseText.match(/<RESULT>(.*?)<\/RESULT>/);
     const msisdnMatch = responseText.match(/<MSISDN>(.*?)<\/MSISDN>/);
 
@@ -312,9 +354,8 @@ export async function verifyOtp(mobile: string, otp: string): Promise<VerifyOtpR
   }
 }
 
-//------change active profile new---
-// NOTE: server kabhi kabhi REQ_RESULT mein "SUCC" bhej deta hai chahe request actually FAIL ho -
-// isliye asli success/fail STATUS aur DISMSG tags se pata chalta hai, sirf REQ_RESULT se nahi
+//  ChangeActiveProfile (XML/SCL based)
+
 export interface ChangeProfileSclResult {
   success: boolean;
   message: string;
@@ -322,17 +363,19 @@ export interface ChangeProfileSclResult {
 
 export async function changeActiveProfileScl(
   encodedMsisdn: string,
-  profileType: string
+  profileType: string,
+  duration: string // FIX: TIME tag ab user ke set kiye hue duration se aayega, current clock time se nahi
 ): Promise<ChangeProfileSclResult> {
   const tid = generateTid();
+  const backendProfileType = toBackendProfileName(profileType); // FIX: display name ("Not Available") -> backend name ("Not_Available")
 
   const xmlBody = `<?xml version="1.0" encoding="ISO-8859-1"?>
 <SCL>
     <MESSAGETYPE>CHANGE_ACTIVE_PROFILE_REQ</MESSAGETYPE>
     <MSISDN>${encodedMsisdn}</MSISDN>
-    <PROFILETYPE>${profileType}</PROFILETYPE>
+    <PROFILETYPE>${backendProfileType}</PROFILETYPE>
     <APP_VER>3.4</APP_VER>
-    <TIME></TIME>
+    <TIME>${duration}</TIME>
     <ACTIVELISTTYPE>WHITE</ACTIVELISTTYPE>
     <TRANSACTION_ID>${tid}</TRANSACTION_ID>
     <AUTHKEY>12345</AUTHKEY>
@@ -342,7 +385,7 @@ export async function changeActiveProfileScl(
     <OS>AN|35</OS>
 </SCL>`;
 
-  console.log('[changeActiveProfileScl] REQUEST ->', { url: SCL_BASE_URL, encodedMsisdn, profileType, tid, xmlBody });
+  console.log('[changeActiveProfileScl] REQUEST ->', { url: SCL_BASE_URL, encodedMsisdn, profileType, backendProfileType, tid, duration, xmlBody });
 
   try {
     const response = await fetch(SCL_BASE_URL, {
@@ -357,16 +400,11 @@ export async function changeActiveProfileScl(
 
     console.log('[changeActiveProfileScl] RESPONSE <-', { status: response.status, responseText });
 
-    // STATUS/DISMSG asli result batate hain - REQ_RESULT akela bharosemand nahi hai
-    const msgMatch = responseText.match(/<MSG>(.*?)<\/MSG>/);
-    const statusMatch = responseText.match(/<STATUS>(.*?)<\/STATUS>/);
-    const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
+    // ab teeno fields ek hi helper call se mil jaate hain, alag alag regex nahi likhne padte
+    const { msg: rawMsg, status, disMsg } = parseSclXmlResponse(responseText);
+    const msg = rawMsg || 'Something went wrong, please try again';
 
-    const msg = msgMatch ? msgMatch[1] : 'Something went wrong, please try again';
-    const status = statusMatch ? statusMatch[1] : '';
-    const disMsg = disMsgMatch ? disMsgMatch[1] : '';
-
-    // agar STATUS field aayi hai aur wo FALSE hai, toh ye asal mein fail hai
+    // STATUS FALSE matlab actually request fail hui hai, REQ_RESULT SUCC hone se koi farak nahi padta
     if (status === 'FALSE') {
       return { success: false, message: disMsg || msg };
     }
@@ -378,9 +416,11 @@ export async function changeActiveProfileScl(
   }
 }
 
-//------subscribe new (XML/SCL based) ---
-// Iske liye pehle encodeMsisdn se encoded MSISDN nikalna zaroori hai, tabhi ye call ho sakti hai
-// NOTE: yahan bhi STATUS/DISMSG se asli result pata chalta hai, REQ_RESULT akela check karna sahi nahi hai
+// -------------------- naya Subscribe (XML/SCL based) --------------------
+// purani subscribeUser se alag hai - isko encoded MSISDN chahiye (raw number nahi),
+// isliye pehle encodeMsisdn call karna padta hai, uske baad hi ye function chalegi
+//
+// yaha bhi wahi cheez - STATUS/DISMSG hi asli result batate hain, REQ_RESULT nahi
 export interface SubscribeSclResult {
   success: boolean;
   message: string;
@@ -421,15 +461,10 @@ export async function subscribeUserScl(
 
     console.log('[subscribeUserScl] RESPONSE <-', { status: response.status, responseText });
 
-    const msgMatch = responseText.match(/<MSG>(.*?)<\/MSG>/);
-    const statusMatch = responseText.match(/<STATUS>(.*?)<\/STATUS>/);
-    const disMsgMatch = responseText.match(/<DISMSG>(.*?)<\/DISMSG>/);
 
-    const msg = msgMatch ? msgMatch[1] : 'Something went wrong, please try again';
-    const status = statusMatch ? statusMatch[1] : '';
-    const disMsg = disMsgMatch ? disMsgMatch[1] : '';
+    const { msg: rawMsg, status, disMsg } = parseSclXmlResponse(responseText);
+    const msg = rawMsg || 'Something went wrong, please try again';
 
-    // agar STATUS field aayi hai aur wo FALSE hai, toh ye asal mein fail hai (chahe REQ_RESULT SUCC ho)
     if (status === 'FALSE') {
       return { success: false, message: disMsg || msg };
     }

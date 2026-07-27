@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Colors } from '@/constants/theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { encodeMsisdn, subscribeUserScl } from '@/components/services/acmApi';
 import AlertModal from '@/components/ui/modals/AlertModal';
+import { useSubscription } from '@/hooks/useSubscription';
 
 // Subscribe card + welcome modal - main.tsx se yahi cheez hata ke yaha dala hai
 export default function SubscribeCard({ cardWidth, onSubscribe }) {
@@ -21,46 +20,26 @@ export default function SubscribeCard({ cardWidth, onSubscribe }) {
     setAlertVisible(true);
   };
 
+  // SRP fix: encode + subscribe API ka poora logic ab is hook ke andar hai
+  // ye component ab sirf UI (card + modal) dikhane pe focus karta hai
+  const { subscribe } = useSubscription();
+
   // Subscribe button dabate hi seedha welcome modal khul jata hai (jaisa pehle tha)
   const handleSubscribePress = () => {
     setShowWelcomeModal(true);
   };
 
-  // "Okay" dabane pe ab nayi (encode + subscribeUserScl) API flow chalega
+  // "Okay" dabane pe ab hook se poora subscribe flow chalega
   const handleOkayPress = async () => {
     setLoading(true);
-
-    const mobile = await AsyncStorage.getItem('mobileNumber');
-
-    if (!mobile) {
-      setLoading(false);
-      setShowWelcomeModal(false);
-      showAlert('Error', 'Mobile number not found, please login again');
-      return;
-    }
-
-    // step 1: mobile ko pehle encode karo - nayi Subscribe API ko encoded MSISDN chahiye hoti hai
-    const encodeResult = await encodeMsisdn(mobile);
-
-    if (!encodeResult.success || !encodeResult.encodedMsisdn) {
-      setLoading(false);
-      setShowWelcomeModal(false);
-      showAlert('Error', encodeResult.message);
-      return;
-    }
-
-    // step 2: ab encoded MSISDN se subscribe karo (nayi XML/SCL wali API)
-    const result = await subscribeUserScl(encodeResult.encodedMsisdn);
+    const result = await subscribe();
     setLoading(false);
+    setShowWelcomeModal(false);
 
     if (result.success) {
-      // encoded value hi save kar rahe hain - yahi "maskedMsisdn" ki tarah baaki APIs (profile activate/delete) mein use hoga
-      await AsyncStorage.setItem('maskedMsisdn', encodeResult.encodedMsisdn);
-      setShowWelcomeModal(false);
       // ye parent ko batayega ki user subscribe ho gaya
       onSubscribe();
     } else {
-      setShowWelcomeModal(false);
       showAlert('Error', result.message);
     }
   };

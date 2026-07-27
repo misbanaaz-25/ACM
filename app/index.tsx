@@ -59,15 +59,15 @@ export default function LoginScreen() {
     }
 
     // TESTING
-    // setLoading(true);
-    // const result = await sendOtp(mobile.trim());
-    // setLoading(false);
+     setLoading(true);
+     const result = await sendOtp(mobile.trim());
+     setLoading(false);
 
-    // if (result.success) {
+     if (result.success) {
       setStep('otp');
-    // } else {
-    //   showAlert('Error', result.message);
-    // }
+     } else {
+       showAlert('Error', result.message);
+     }
   };
 
   // Step 2: "Validate"
@@ -83,23 +83,23 @@ export default function LoginScreen() {
     }
 
     // TESTING:
-    // setLoading(true);
-    // const otpResult = await verifyOtp(mobile.trim(), otp.trim());
+     setLoading(true);
+    const otpResult = await verifyOtp(mobile.trim(), otp.trim());
 
-    // if (!otpResult.success) {
-    //   setLoading(false);
-    //   showAlert('Error', otpResult.message);
-    //   return;
-    // }
+    if (!otpResult.success) {
+      setLoading(false);
+      showAlert('Error', otpResult.message);
+      return;
+    }
 
     await AsyncStorage.setItem('mobileNumber', mobile.trim());
 
-    // if (otpResult.encodedMsisdn) {
-    //   await AsyncStorage.setItem('maskedMsisdn', otpResult.encodedMsisdn);
-    // }
+    if (otpResult.encodedMsisdn) {
+      await AsyncStorage.setItem('maskedMsisdn', otpResult.encodedMsisdn);
+    }
 
     setLoading(false);
-    router.push('/main');
+  router.push('/main');
   };
 
   const handleResendOTP = async () => {
@@ -145,14 +145,14 @@ export default function LoginScreen() {
     setIsEditingMobile(false);
     setOtp('');
 
-    // TESTING
-    // setLoading(true);
-    // const result = await sendOtp(editedMobile.trim());
-    // setLoading(false);
+    //TESTING
+    setLoading(true);
+    const result = await sendOtp(editedMobile.trim());
+    setLoading(false);
 
-    // if (!result.success) {
-    //   showAlert('Error', result.message);
-    // }
+    if (!result.success) {
+      showAlert('Error', result.message);
+    }
   };
 
   useEffect(() => {

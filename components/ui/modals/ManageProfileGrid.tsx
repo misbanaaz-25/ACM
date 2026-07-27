@@ -20,8 +20,7 @@ import CricketIcon from '@/components/ui/Icon/cricketicon';
 import PrayerIcon from '@/components/ui/Icon/prayericon';
 import SmallTimer from '@/components/ui/modals/smalltimer';
 import AlertModal from '@/components/ui/modals/AlertModal';
-import { changeActiveProfileScl } from '@/components/services/acmApi';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useProfileActivation } from '@/hooks/useProfileActivation';
 
 
 type Props = {
@@ -57,6 +56,10 @@ export default function ManageProfileGrid({
     setAlertMessage(message);
     setAlertVisible(true);
   };
+
+  // SRP fix: API call + AsyncStorage wala poora logic ab is hook ke andar hai
+  // ye component ab sirf UI aur user-interaction pe focus karta hai
+  const { activateProfile } = useProfileActivation(onProfileChange);
 
 
     const manageProfileItems = [
@@ -152,33 +155,14 @@ export default function ManageProfileGrid({
     }
   };
 
-  // SmallTimer se hour/minute aata hai, phir naye SCL API ko call karte hain
+  // SmallTimer se hour/minute aata hai - ab poora API+storage logic hook ke andar hai,
+  // is function ka kaam ab bas hook ko call karna aur result ke hisaab se alert dikhana hai
   const handleSmallTimerSubmit = async (hour: number, minute: number) => {
     setShowSmallTimer(false);
 
-    // encoded MSISDN chahiye — jo subscribe ke time save hua tha
-    const maskedMsisdn = await AsyncStorage.getItem('maskedMsisdn');
-
-    if (!maskedMsisdn) {
-      showAlert('Error', 'Please subscribe first before changing profile');
-      return;
-    }
-
-    const result = await changeActiveProfileScl(maskedMsisdn, selectedProfile);
+    const result = await activateProfile(selectedProfile, hour, minute);
 
     if (result.success) {
-      // duration se timer ka "end time" nikal rahe hain (abhi ka time + total seconds)
-      const totalMs = (hour * 60 + minute) * 60 * 1000;
-      const endTime = totalMs > 0 ? Date.now() + totalMs : null;
-
-      // dashboard ke liye save + turant update dono karo
-      await AsyncStorage.setItem('activeProfile', selectedProfile);
-      if (endTime) {
-        await AsyncStorage.setItem('profileEndTime', String(endTime));
-      } else {
-        await AsyncStorage.removeItem('profileEndTime');
-      }
-      onProfileChange(selectedProfile, endTime);
       showAlert('Success', result.message);
     } else {
       showAlert('Error', result.message);

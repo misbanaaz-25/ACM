@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import RecordingModal from '@/components/ui/modals/recording';
 import AdvanceBlacklistContent from '@/components/ui/modals/advanceblacklist';
 import WhitelistModal from '@/components/ui/modals/whitelist';
@@ -23,7 +22,7 @@ import BottomBar from '@/components/ui/modals/BottomBar';
 import SubscribeCard from '@/components/ui/modals/SubscribeCard';
 import AlertModal from '@/components/ui/modals/AlertModal';
 import DashboardCard from '@/components/ui/modals/DashboardCard';
-import { changeActiveProfileScl } from '@/components/services/acmApi';
+import { useActiveProfile } from '@/hooks/useActiveProfile';
 
 
 export default function HomeScreen() {
@@ -42,11 +41,6 @@ export default function HomeScreen() {
   // grid, whitelist, blacklist all three are locked before subscribe
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  // dashboard pe dikhne wala current active profile
-  const [activeProfile, setActiveProfile] = useState('No profile');
-  // timer ke liye - jab profile khatam hoga uska timestamp
-  const [profileEndTime, setProfileEndTime] = useState<number | null>(null);
-
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
@@ -57,17 +51,10 @@ export default function HomeScreen() {
     setAlertVisible(true);
   };
 
-  // screen open hote hi AsyncStorage se pichla saved profile aur uska end time load karo
-  useEffect(() => {
-    const loadProfile = async () => {
-      const saved = await AsyncStorage.getItem('activeProfile');
-      if (saved) setActiveProfile(saved);
-
-      const savedEndTime = await AsyncStorage.getItem('profileEndTime');
-      if (savedEndTime) setProfileEndTime(Number(savedEndTime));
-    };
-    loadProfile();
-  }, []);
+  // SRP fix: profile ka poora state + logic (load, change, delete) ab is custom hook mein hai
+  // main.tsx ab sirf UI render karne pe focus karta hai
+  const { activeProfile, profileEndTime, handleProfileChange, handleDeleteProfile } =
+    useActiveProfile(showAlert);
 
   // if not subscribed show alert !
   const requireSubscription = (action: () => void) => {
@@ -81,35 +68,6 @@ export default function HomeScreen() {
   // ManageProfileGrid alerts (for icons)
   const showSubscribeAlert = () => {
     showAlert('Subscribe first', 'Subscribe to access Service of Airtel Call Manager');
-  };
-
-  // ManageProfileGrid se profile change hone par naam + timer dono update karo
-  const handleProfileChange = (profile: string, endTime: number | null) => {
-    setActiveProfile(profile);
-    setProfileEndTime(endTime);
-  };
-
-  // Dashboard ke "X" icon se profile delete/reset karne ke liye
-  // same API use hoti hai jo activate ke liye hoti hai, bas "General" bhejte hain
-  const handleDeleteProfile = async () => {
-    const maskedMsisdn = await AsyncStorage.getItem('maskedMsisdn');
-
-    if (!maskedMsisdn) {
-      showAlert('Error', 'Please subscribe first');
-      return;
-    }
-
-    const result = await changeActiveProfileScl(maskedMsisdn, 'General');
-
-    if (result.success) {
-      await AsyncStorage.removeItem('activeProfile');
-      await AsyncStorage.removeItem('profileEndTime');
-      setActiveProfile('No profile');
-      setProfileEndTime(null);
-      showAlert('Success', result.message);
-    } else {
-      showAlert('Error', result.message);
-    }
   };
 
   return (
@@ -154,13 +112,7 @@ export default function HomeScreen() {
           )}
 
           {/* Dashboard card - ab separate file mein hai */}
-          <DashboardCard
-
-           cardWidth={cardWidth}
-           activeProfile={activeProfile}
-           profileEndTime={profileEndTime}
-           onDeleteProfile={handleDeleteProfile}
-           />
+          <DashboardCard cardWidth={cardWidth} activeProfile={activeProfile} profileEndTime={profileEndTime} onDeleteProfile={handleDeleteProfile} />
 
              {/* Manage / Schedule Profile card */}
           <View style={[styles.card, { width: cardWidth, backgroundColor: colors.white }]}>

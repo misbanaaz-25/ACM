@@ -54,7 +54,7 @@ export default function ManageAccessScreen() {
       hasToggle: true,
     },
     {
-      title: 'Phonebook Backup & Restore',
+      title: 'book Backup & Restore',
       subtitle: 'Backup and restore your contacts',
       hasToggle: false,
       onPress: () => router.push('/phone_backup')
