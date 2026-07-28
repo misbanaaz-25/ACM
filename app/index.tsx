@@ -19,6 +19,18 @@ import { Colors } from '@/constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 
+// Valid 10 digit mobile number: cannot start with 0
+const MOBILE_REGEX = /^[1-9]\d{9}$/;
+
+// Strips non-digit chars and blocks leading zero while typing
+const sanitizeMobileInput = (text: string) => {
+  const digitsOnly = text.replace(/[^0-9]/g, '');
+  if (digitsOnly.length > 0 && digitsOnly[0] === '0') {
+    return '';
+  }
+  return digitsOnly;
+};
+
 export default function LoginScreen() {
   const colors = Colors.light;
   const router = useRouter();
@@ -27,7 +39,11 @@ export default function LoginScreen() {
 
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // FIX 3: separate loading states so buttons don't affect each other's UI
+  const [mobileLoading, setMobileLoading] = useState(false); // Get OTP + edit mobile
+  const [validateLoading, setValidateLoading] = useState(false); // Validate button
+  const [resendLoading, setResendLoading] = useState(false); // Resend OTP button
 
   const [timer, setTimer] = useState(0);
   const [isResendDisabled, setIsResendDisabled] = useState(false);
@@ -53,25 +69,35 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!/^\d{10}$/.test(mobile.trim())) {
+    if (!MOBILE_REGEX.test(mobile.trim())) {
       showAlert('Error', 'Please enter a valid 10 digit mobile number');
       return;
     }
 
-    // TESTING
-     setLoading(true);
-     const result = await sendOtp(mobile.trim());
-     setLoading(false);
+    setMobileLoading(true);
+    const result = await sendOtp(mobile.trim());
+    setMobileLoading(false);
 
-     if (result.success) {
+    if (result.success) {
       setStep('otp');
-     } else {
-       showAlert('Error', result.message);
-     }
+    } else {
+      showAlert('Error', result.message);
+    }
   };
 
   // Step 2: "Validate"
   const handleValidateOtp = async () => {
+    // FIX 1: validate mobile number as well, not just OTP
+    if (mobile.trim() === '') {
+      showAlert('Error', 'Please enter your mobile number');
+      return;
+    }
+
+    if (!MOBILE_REGEX.test(mobile.trim())) {
+      showAlert('Error', 'Please enter a valid 10 digit mobile number');
+      return;
+    }
+
     if (otp.trim() === '') {
       showAlert('Error', 'Please enter OTP');
       return;
@@ -82,12 +108,11 @@ export default function LoginScreen() {
       return;
     }
 
-    // TESTING:
-     setLoading(true);
+    setValidateLoading(true);
     const otpResult = await verifyOtp(mobile.trim(), otp.trim());
 
     if (!otpResult.success) {
-      setLoading(false);
+      setValidateLoading(false);
       showAlert('Error', otpResult.message);
       return;
     }
@@ -98,27 +123,38 @@ export default function LoginScreen() {
       await AsyncStorage.setItem('maskedMsisdn', otpResult.encodedMsisdn);
     }
 
-    setLoading(false);
-  router.push('/main');
+    setValidateLoading(false);
+    router.push('/main');
   };
 
   const handleResendOTP = async () => {
-    setIsResendDisabled(true);
-    setTimer(30);
-    setLoading(true);
+    // FIX 2: validate mobile BEFORE starting timer / calling API
+    if (mobile.trim() === '') {
+      showAlert('Error', 'Please enter your mobile number');
+      return;
+    }
 
-    // TESTING
+    if (!MOBILE_REGEX.test(mobile.trim())) {
+      showAlert('Error', 'Please enter a valid 10 digit mobile number');
+      return;
+    }
+
+    setResendLoading(true);
     const result = await sendOtp(mobile.trim());
-    setLoading(false);
+    setResendLoading(false);
 
-    if (!result.success) {
+    if (result.success) {
+      // Timer starts only after OTP is actually sent successfully
+      setIsResendDisabled(true);
+      setTimer(30);
+    } else {
       showAlert('Error', result.message);
     }
   };
 
   // Tap on mobile number (OTP step) to start editing directly - no pencil icon
   const handleStartEditMobile = () => {
-    if (loading) return;
+    if (mobileLoading) return;
     setEditedMobile(mobile);
     setIsEditingMobile(true);
   };
@@ -136,7 +172,7 @@ export default function LoginScreen() {
 
   // Save edited number -> validate -> trigger fresh OTP
   const handleSaveMobile = async () => {
-    if (!/^\d{10}$/.test(editedMobile.trim())) {
+    if (!MOBILE_REGEX.test(editedMobile.trim())) {
       showAlert('Error', 'Please enter a valid 10 digit mobile number');
       return;
     }
@@ -145,10 +181,9 @@ export default function LoginScreen() {
     setIsEditingMobile(false);
     setOtp('');
 
-    //TESTING
-    setLoading(true);
+    setMobileLoading(true);
     const result = await sendOtp(editedMobile.trim());
-    setLoading(false);
+    setMobileLoading(false);
 
     if (!result.success) {
       showAlert('Error', result.message);
@@ -219,18 +254,18 @@ export default function LoginScreen() {
                       keyboardType="phone-pad"
                       maxLength={10}
                       value={mobile}
-                      onChangeText={setMobile}
-                      editable={!loading}
+                      onChangeText={(text) => setMobile(sanitizeMobileInput(text))}
+                      editable={!mobileLoading}
                     />
                   </View>
 
                   <TouchableOpacity
-                    style={[styles.button, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]}
+                    style={[styles.button, { backgroundColor: colors.primary }, mobileLoading && { opacity: 0.6 }]}
                     onPress={handleGetOtp}
-                    disabled={loading}
+                    disabled={mobileLoading}
                   >
                     <Text style={[styles.buttonText, { color: colors.white }]}>
-                      {loading ? 'Please wait...' : 'Get OTP'}
+                      {mobileLoading ? 'Please wait...' : 'Get OTP'}
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -251,8 +286,8 @@ export default function LoginScreen() {
                       keyboardType="phone-pad"
                       maxLength={10}
                       value={mobile}
-                      onChangeText={setMobile}
-                      editable={!loading}
+                      onChangeText={(text) => setMobile(sanitizeMobileInput(text))}
+                      editable={!mobileLoading}
                     />
                   </View>
 
@@ -265,27 +300,31 @@ export default function LoginScreen() {
                       maxLength={4}
                       value={otp}
                       onChangeText={setOtp}
-                      editable={!loading}
+                      editable={!validateLoading}
                     />
                   </View>
 
                   <TouchableOpacity
-                    style={[styles.button, { backgroundColor: colors.primary }, loading && { opacity: 0.6 }]}
+                    style={[styles.button, { backgroundColor: colors.primary }, validateLoading && { opacity: 0.6 }]}
                     onPress={handleValidateOtp}
-                    disabled={loading}
+                    disabled={validateLoading}
                   >
                     <Text style={[styles.buttonText, { color: colors.white }]}>
-                      {loading ? 'Please wait...' : 'Validate'}
+                      {validateLoading ? 'Please wait...' : 'Validate'}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.button1, { borderColor: colors.primary, backgroundColor: colors.white }, isResendDisabled && { opacity: 0.6 }]}
-                    disabled={isResendDisabled}
+                    style={[styles.button1, { borderColor: colors.primary, backgroundColor: colors.white }, (isResendDisabled || resendLoading) && { opacity: 0.6 }]}
+                    disabled={isResendDisabled || resendLoading}
                     onPress={handleResendOTP}
                   >
                     <Text style={[styles.buttonText1, { color: colors.primary }]}>
-                      {isResendDisabled ? `Resend OTP (${timer}s)` : 'Resend OTP'}
+                      {resendLoading
+                        ? 'Please wait...'
+                        : isResendDisabled
+                        ? `Resend OTP (${timer}s)`
+                        : 'Resend OTP'}
                     </Text>
                   </TouchableOpacity>
                 </>
