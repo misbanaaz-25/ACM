@@ -258,8 +258,7 @@ export async function changeActiveProfile(
   }
 }
 
-// raw mobile number ko encoded MSISDN mein badalne ke liye
-// baaki jo bhi SCL based APIs hai unko yahi encoded value chahiye hoti hai, raw number nahi
+////////
 export async function encodeMsisdn(
   mobile: string
 ): Promise<EncodeMsisdnResult> {

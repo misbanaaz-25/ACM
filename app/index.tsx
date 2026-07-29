@@ -22,7 +22,7 @@ import { useCallback } from 'react';
 // Valid 10 digit mobile number: cannot start with 0
 const MOBILE_REGEX = /^[1-9]\d{9}$/;
 
-// Strips non-digit chars and blocks leading zero while typing
+
 const sanitizeMobileInput = (text: string) => {
   const digitsOnly = text.replace(/[^0-9]/g, '');
   if (digitsOnly.length > 0 && digitsOnly[0] === '0') {
@@ -48,7 +48,7 @@ export default function LoginScreen() {
   const [timer, setTimer] = useState(0);
   const [isResendDisabled, setIsResendDisabled] = useState(false);
 
-  // Editable mobile number (OTP step) - tap number to edit, no pencil icon
+  // Editable mobile number (OTP step) - tap number to edit
   const [isEditingMobile, setIsEditingMobile] = useState(false);
   const [editedMobile, setEditedMobile] = useState('');
 

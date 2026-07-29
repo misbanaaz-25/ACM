@@ -27,20 +27,21 @@ export default function DashboardCard({
       <Text style={[styles.cardTitle, { color: colors.text }]}>Dashboard</Text>
 
       <View style={[styles.timerBox, { borderColor: colors.border }]}>
-        <Text style={[styles.timerText, { color: colors.primary }]}>{timerLabel}</Text>
-        <Text style={[styles.timerLabel, { color: colors.text }]}>My Profile</Text>
-
-        <View style={styles.profileValueRow}>
-          <Text style={[styles.timerValue, { color: colors.primary }]}>{activeProfile}</Text>
+        <View style={styles.topRow}>
+          <Text style={[styles.timerText, { color: colors.primary }]}>{timerLabel}</Text>
 
           {/* profile active hai tabhi delete/reset icon dikhao */}
           {hasActiveProfile && (
-            <TouchableOpacity onPress={onDeleteProfile} style={styles.deleteIconBtn}>
-              <Text style={[styles.timerText, { color: colors.primary }]}>Remove profile</Text>
+            <TouchableOpacity onPress={onDeleteProfile}>
+              <Text style={[styles.removeProfileText, { color: colors.primary }]}>Remove profile</Text>
             </TouchableOpacity>
           )}
         </View>
+
+        <Text style={[styles.timerLabel, { color: colors.text }]}>My Profile</Text>
+        <Text style={[styles.timerValue, { color: colors.primary }]}>{activeProfile}</Text>
       </View>
+
 
       <View style={styles.statRow}>
         <TouchableOpacity
@@ -95,6 +96,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
   },
+ topRow:{
+     flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      flexWrap: 'nowrap',
+  },
   timerBox: {
     borderWidth: 1,
     borderRadius: 10,
@@ -103,6 +111,7 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontSize: 13,
+    flexShrink: 1,
   },
   timerLabel: {
     fontSize: 12,
@@ -113,16 +122,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 2,
   },
-  profileValueRow: {
+profileValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   deleteIconBtn: {
     marginTop: -90,
-    marginLeft: 120,
+    marginLeft: 100,
     fontWeight:'700',
-    width:'200',
+    width:200,
   },
   statRow: {
     flexDirection: 'row',
@@ -153,5 +162,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginRight: 2,
+  },
+  removeProfileText:{
+    fontSize: 13,
+    fontWeight: '700',
+    flexShrink: 0,
   },
 });
