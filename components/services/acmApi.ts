@@ -6,10 +6,9 @@ const SCL_BASE_URL = 'https://acm.mcarbon.com/ACM_APP_3.4/SclClient';
 const SUBSCRIBE_URL = 'https://acm.mcarbon.com/ACMService/thirdparty/v1/Subscribe';
 const CHANGE_PROFILE_URL = 'https://acm.mcarbon.com/ACMService/thirdparty/v1/ChangeActiveProfile';
 const ENCODE_MSISDN_URL = 'https://acm.mcarbon.com/ACMService/encode';
-const OTP_CNF_URL = SCL_BASE_URL; // OTP confirm bhi same SCL server pe jata hai
+const OTP_CNF_URL = SCL_BASE_URL;
 
-// server ko har request ke saath ek unique transaction id chahiye hoti hai
-// isliye current date-time se hi ek id bana rahe hain, kaafi common tarika hai
+
 function generateTid(): string {
   const now = new Date();
   const yy = String(now.getFullYear()).slice(2);
@@ -21,24 +20,24 @@ function generateTid(): string {
   return `${yy}${mm}${dd}${hh}${min}${ss}`;
 }
 
-//updated profile name !
+//updated profile names
 
 const PROFILE_NAME_MAP: Record<string, string> = {
-  'Meeting': 'Meeting',
-  'General': 'General',
-  'Driving': 'Driving',
   'Not Available': 'Not_Available',
-  'Not Well': 'Not_Well',
-  'Holiday': 'Holiday',
-  'Travelling': 'Travelling',
+  'Meeting': 'Meeting',
   'Busy': 'Busy',
-  'Low Battery': 'Low_Battery',
-  'Watching Movie': 'Watching_Movie',
+  'Low battery': 'Low_Battery',
+  'Holiday': 'Holiday',
+  'Driving': 'Driving',
+  'Not Well': 'Not_Well',
+  'Prayer': 'Prayer',
+  'Travelling': 'Travelling',
+  'My call only': 'Urgent ',
   'Gym': 'Gym',
-  'DND': 'DND',
   'Training': 'Training',
-  'Urgent Calls Only': 'Urgent',
-  'Watching Cricket': 'Watching_Cricket',
+  'Movie': 'Watching_Movie',
+  'Cricket': 'Watching_Cricket',
+  'General': 'General',
 };
 
 
@@ -258,7 +257,7 @@ export async function changeActiveProfile(
   }
 }
 
-////////
+///
 export async function encodeMsisdn(
   mobile: string
 ): Promise<EncodeMsisdnResult> {
@@ -403,23 +402,20 @@ export async function changeActiveProfileScl(
     const { msg: rawMsg, status, disMsg } = parseSclXmlResponse(responseText);
     const msg = rawMsg || 'Something went wrong, please try again';
 
-    // STATUS FALSE matlab actually request fail hui hai, REQ_RESULT SUCC hone se koi farak nahi padta
-    if (status === 'FALSE') {
-      return { success: false, message: disMsg || msg };
-    }
+  // STATUS FALSE matlab actually request fail hui hai, REQ_RESULT SUCC hone se koi farak nahi padta
+      if (status === 'FALSE') {
+        return { success: false, message: disMsg || msg };
+      }
 
-    return { success: true, message: msg };
+      return { success: true, message: msg };
+
   } catch (error) {
     console.log('changeActiveProfileScl error:', error);
     return { success: false, message: 'Something went wrong, please try again' };
   }
 }
 
-// -------------------- naya Subscribe (XML/SCL based) --------------------
-// purani subscribeUser se alag hai - isko encoded MSISDN chahiye (raw number nahi),
-// isliye pehle encodeMsisdn call karna padta hai, uske baad hi ye function chalegi
-//
-// yaha bhi wahi cheez - STATUS/DISMSG hi asli result batate hain, REQ_RESULT nahi
+
 export interface SubscribeSclResult {
   success: boolean;
   message: string;

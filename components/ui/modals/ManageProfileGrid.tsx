@@ -99,10 +99,7 @@ export default function ManageProfileGrid({
         icon: <TravellingIcon size={32} color={colors.primary} />,
         label: 'Travelling',
       },
-      {
-        icon: <Mycall size={32} color={colors.primary} />,
-        label: 'My call only',
-      },
+
       {
         icon: <GymIcon size={32} color={colors.primary} />,
         label: 'Gym',
@@ -131,7 +128,7 @@ export default function ManageProfileGrid({
     ];
 
 
-  const visibleItems = showAll ? manageProfileItems : manageProfileItems.slice(0, 8);
+  const visibleItems = showAll ? manageProfileItems : manageProfileItems.slice(0,8);
 
   const handleItemPress = (label: string) => {
 

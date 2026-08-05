@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import SubscribeCard from '@/components/ui/modals/SubscribeCard';
 import AlertModal from '@/components/ui/modals/AlertModal';
 import DashboardCard from '@/components/ui/modals/DashboardCard';
 import { useActiveProfile } from '@/hooks/useActiveProfile';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function HomeScreen() {
@@ -40,6 +41,16 @@ export default function HomeScreen() {
 
   // grid, whitelist, blacklist all three are locked before subscribe
   const [isSubscribed, setIsSubscribed] = useState(false);
+  useEffect(() => {
+    const loadSubscriptionStatus = async () => {
+      const savedStatus = await AsyncStorage.getItem('isSubscribed');
+      if (savedStatus === 'true') {
+        setIsSubscribed(true);
+      }
+    };
+    loadSubscriptionStatus();
+  }, []);
+
 
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
@@ -107,8 +118,12 @@ export default function HomeScreen() {
           {!isSubscribed && (
             <SubscribeCard
               cardWidth={cardWidth}
-              onSubscribe={() => setIsSubscribed(true)}
+              onSubscribe={async () => {
+                setIsSubscribed(true);
+                await AsyncStorage.setItem('isSubscribed', 'true');
+              }}
             />
+
           )}
 
           {/* Dashboard card - ab separate file mein hai */}

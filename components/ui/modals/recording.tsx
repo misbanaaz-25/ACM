@@ -422,8 +422,6 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
 
-  // idle state ab row layout mein hai - chhota mic left side, text uske right mein
-  // pehle ye centered column tha (bada mic upar, text niche), pic ke hisab se change kiya
   idleWrapper: {
     flexDirection: 'row',
     alignItems: 'center',

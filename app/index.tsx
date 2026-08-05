@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -17,11 +18,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendOtp, verifyOtp } from '@/components/services/acmApi';
 import { Colors } from '@/constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
+import { useOtpVerification , getHash} from 'react-native-otp-auto-verify';
+
 
 // Valid 10 digit mobile number: cannot start with 0
 const MOBILE_REGEX = /^[1-9]\d{9}$/;
-
 
 const sanitizeMobileInput = (text: string) => {
   const digitsOnly = text.replace(/[^0-9]/g, '');
@@ -35,12 +36,16 @@ export default function LoginScreen() {
   const colors = Colors.light;
   const router = useRouter();
 
+  // NEW: checking AsyncStorage for existing login before showing Login form
+  const [checkingLogin, setCheckingLogin] = useState(true);
+
   const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
 
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
 
-  // FIX 3: separate loading states so buttons don't affect each other's UI
+  const{ otp: decodedOtp, stopListening } = useOtpVerification( {numberOfDigits: 4 });
+
   const [mobileLoading, setMobileLoading] = useState(false); // Get OTP + edit mobile
   const [validateLoading, setValidateLoading] = useState(false); // Validate button
   const [resendLoading, setResendLoading] = useState(false); // Resend OTP button
@@ -61,6 +66,37 @@ export default function LoginScreen() {
     setAlertMessage(message);
     setAlertVisible(true);
   };
+
+
+  useEffect(() => {
+    const checkExistingLogin = async () => {
+      try {
+        const savedMobile = await AsyncStorage.getItem('mobileNumber');
+        if (savedMobile) {
+          router.replace('/main');
+        } else {
+          setCheckingLogin(false);
+        }
+      } catch (error) {
+        setCheckingLogin(false);
+      }
+    };
+     checkExistingLogin();
+  }, []);
+
+  useEffect(() => {
+    if (decodedOtp) setOtp(decodedOtp);
+  }, [decodedOtp]);
+
+  useEffect(() => {
+    return () => stopListening(); // cleanup wapas
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      getHash().then(hash => console.log("Your App Hash:", hash[0]));
+    }
+  }, []);
 
   // Step 1: "Get OTP"
   const handleGetOtp = async () => {
@@ -87,7 +123,6 @@ export default function LoginScreen() {
 
   // Step 2: "Validate"
   const handleValidateOtp = async () => {
-    // FIX 1: validate mobile number as well, not just OTP
     if (mobile.trim() === '') {
       showAlert('Error', 'Please enter your mobile number');
       return;
@@ -128,7 +163,6 @@ export default function LoginScreen() {
   };
 
   const handleResendOTP = async () => {
-    // FIX 2: validate mobile BEFORE starting timer / calling API
     if (mobile.trim() === '') {
       showAlert('Error', 'Please enter your mobile number');
       return;
@@ -144,7 +178,6 @@ export default function LoginScreen() {
     setResendLoading(false);
 
     if (result.success) {
-      // Timer starts only after OTP is actually sent successfully
       setIsResendDisabled(true);
       setTimer(30);
     } else {
@@ -208,6 +241,22 @@ export default function LoginScreen() {
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
+
+  // NEW: jab tak AsyncStorage check ho raha hai, Login form ke bajaye loading dikhao
+  if (checkingLogin) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -296,11 +345,14 @@ export default function LoginScreen() {
                       style={[styles.input, { color: colors.text }]}
                       placeholder="Enter OTP"
                       placeholderTextColor={colors.textSecondary}
-                      keyboardType="phone-pad"
+                      keyboardType="number-pad"
                       maxLength={4}
                       value={otp}
                       onChangeText={setOtp}
                       editable={!validateLoading}
+                      autoComplete="sms-otp"
+                      textContentType="oneTimeCode"
+                      autoFocus={step === 'otp'}
                     />
                   </View>
 
@@ -342,7 +394,6 @@ export default function LoginScreen() {
 
         <AlertModal
           visible={alertVisible}
-          title={alertTitle}
           message={alertMessage}
           onClose={() => setAlertVisible(false)}
         />

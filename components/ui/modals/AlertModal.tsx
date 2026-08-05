@@ -12,7 +12,7 @@ type AlertModalProps = {
   visible: boolean;
   message: string;
   onClose: () => void;
-  illustration?: React.ReactNode; // optional - jab pass hoga tabhi dikhega
+  illustration?: React.ReactNode;
 };
 
 export default function AlertModal({
@@ -36,7 +36,6 @@ export default function AlertModal({
             </View>
           )}
 
-
           <Text style={styles.message}>{message}</Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>OK</Text>
@@ -58,6 +57,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 340,
+    maxHeight:'80%',
     backgroundColor: Colors.light.background,
     borderRadius: 18,
     paddingVertical: 22,
@@ -69,16 +69,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.light.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
+
   message: {
     width: '100%',
-    fontSize: 14,
+     fontSize: 14,
     color: Colors.light.text,
     opacity: 0.7,
     textAlign: 'center',
@@ -86,7 +80,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    justifyContent: 'center', // Vertical center
+    justifyContent: 'center',
     alignItems: 'center',
     width: '70%',
     backgroundColor: Colors.light.primary,
@@ -95,7 +89,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   buttonText: {
-     textAlign:'center',
+    textAlign: 'center',
     color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',

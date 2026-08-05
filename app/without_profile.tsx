@@ -71,7 +71,7 @@ export default function HomeScreen() {
               />
               <View>
                 <Text style={styles.greeting}>Good Morning User!</Text>
-                <Text style={styles.subGreeting}>Welcome to Airtel Call Manager</Text>
+                <Text style={styles.subGreeting}>Welcome to Airtel Manager</Text>
               </View>
             </View>
             <TouchableOpacity

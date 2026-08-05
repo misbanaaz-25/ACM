@@ -18,8 +18,6 @@ export default function DashboardCard({
   const colors = Colors.light;
   const hasActiveProfile = activeProfile !== 'No profile';
 
-  // SRP fix: countdown timer ka poora logic (setInterval + formatting) ab is hook ke andar hai
-  // ye component ab sirf UI dikhane pe focus karta hai
   const { timerLabel } = useCountdownTimer(profileEndTime, onDeleteProfile);
 
   return (
@@ -28,9 +26,8 @@ export default function DashboardCard({
 
       <View style={[styles.timerBox, { borderColor: colors.border }]}>
         <View style={styles.topRow}>
-          <Text style={[styles.timerText, { color: colors.primary }]}>{timerLabel}</Text>
+          <Text style={[styles.timerText, { color: hasActiveProfile ? colors.primary : colors.preprimary }]}>{timerLabel}</Text>
 
-          {/* profile active hai tabhi delete/reset icon dikhao */}
           {hasActiveProfile && (
             <TouchableOpacity onPress={onDeleteProfile}>
               <Text style={[styles.removeProfileText, { color: colors.primary }]}>Remove profile</Text>
@@ -39,16 +36,14 @@ export default function DashboardCard({
         </View>
 
         <Text style={[styles.timerLabel, { color: colors.text }]}>My Profile</Text>
-        <Text style={[styles.timerValue, { color: colors.primary }]}>{activeProfile}</Text>
-      </View>
-
-
-      <View style={styles.statRow}>
+        <Text style={[styles.timerValue, { color: hasActiveProfile ? colors.primary : colors.preprimary }]}>{activeProfile}</Text>
+        </View>
+    <View style={styles.statRow}>
         <TouchableOpacity
           style={[styles.statBox, { borderColor: colors.border }]}
           onPress={() => router.push('/ScheduleProfile')}
         >
-          <Text style={[styles.statTitle, { color: colors.text }]}>No Profile</Text>
+          <Text style={[styles.statTitle, { color: colors.preprimary }]}>No Profile</Text>
           <View style={styles.statLinkRow}>
             <Text style={[styles.statLink, { color: colors.primary }]}>Schedule Profile</Text>
             <Ionicons name="chevron-forward" size={14} color={colors.primary} style={{ marginLeft: -23 }} />
@@ -59,7 +54,7 @@ export default function DashboardCard({
           style={[styles.statBox, { borderColor: colors.border }]}
           onPress={() => router.push('/Blocked_contact')}
         >
-          <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
+          <Text style={[styles.statNumber, { color: colors.preprimary }]}>0</Text>
           <View style={styles.statLinkRow}>
             <Text style={[styles.statLink, { color: colors.primary }]}>Blacklist</Text>
             <Ionicons name="chevron-forward" size={14} color={colors.primary} />
@@ -70,7 +65,7 @@ export default function DashboardCard({
           style={[styles.statBox, { borderColor: colors.border }]}
           onPress={() => router.push('/Whitelist_contact')}
         >
-          <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
+          <Text style={[styles.statNumber, { color: colors.preprimary }]}>0</Text>
           <View style={styles.statLinkRow}>
             <Text style={[styles.statLink, { color: colors.primary }]}>Whitelist</Text>
             <Ionicons name="chevron-forward" size={14} color={colors.primary} />
@@ -112,6 +107,7 @@ const styles = StyleSheet.create({
   timerText: {
     fontSize: 13,
     flexShrink: 1,
+    width:150,
   },
   timerLabel: {
     fontSize: 12,
